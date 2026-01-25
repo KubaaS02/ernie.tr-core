@@ -1,0 +1,14 @@
+import pytest
+from datetime import datetime
+from src.core.time.task_duration import calculate_task_duration
+from src.models.task import Task
+
+class TestTaskModel:
+    def test_task_model(self) -> None:
+            """"""
+            new_task = Task(datetime(2025, 11, 1, 10, 00), datetime(2025, 11, 1, 10, 00), "task_123")
+            result: int = calculate_task_duration(
+                new_task.task_start,
+                new_task.task_stop
+            )
+            assert result == 1
