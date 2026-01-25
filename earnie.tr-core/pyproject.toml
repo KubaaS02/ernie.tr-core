@@ -1,0 +1,13 @@
+[project]
+name = "earnie-tr-core"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "poethepoet>=0.40.0",
+    "pytest>=9.0.2",
+]
+
+[tools.poethepoet.tasks]
+test = "pytest tests"
