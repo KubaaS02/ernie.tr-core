@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, time
 from typing import Union
 
 
@@ -117,3 +117,34 @@ def calculate_task_duration(
     duration_minutes = round(duration_raw)
     
     return max(duration_minutes, 1)
+
+def time_conversion(duration_min: int) -> str:
+    """
+    Konwertuje czas pracy z minut na format godzin i minut (HH:MM)
+    
+    Args:
+        Czas pracy w minutach (int)
+    
+    Returns:
+        Czas pracy w formacie string (HH:MM)
+    
+    Raises:
+        TypeError: Jeśli format danych wejściowych jest niepoprawny
+        ValueError: Jeśli duration_min < 0
+    
+    Examples:
+        >>> # zwykły task 64 min
+        >>> time_conversion(64)
+        01:04
+    """
+    if not isinstance(duration_min, int):
+        raise TypeError(
+            f"{duration_min} musi być int a dostałem: {type(duration_min).__name__}"
+        )
+    if duration_min < 0:
+        raise ValueError(
+            f"{duration_min} musi być większe od 0"
+        )
+    hours = duration_min // 60
+    minutes_remainder = duration_min % 60
+    return print(f"{hours:02d}:{minutes_remainder:02d}")
