@@ -1,6 +1,6 @@
 from datetime import datetime, time
-from typing import Union
-
+from typing import Union, List, Tuple
+from src.models.task import Task
 
 def _to_minutes_from_midnight(dt: datetime) -> int:
     """
@@ -132,7 +132,7 @@ def time_conversion(duration_min: int) -> str:
         TypeError: Jeśli format danych wejściowych jest niepoprawny
         ValueError: Jeśli duration_min < 0
     
-    Examples:
+    Example:
         >>> # zwykły task 64 min
         >>> time_conversion(64)
         01:04
@@ -147,4 +147,26 @@ def time_conversion(duration_min: int) -> str:
         )
     hours = duration_min // 60
     minutes_remainder = duration_min % 60
-    return print(f"{hours:02d}:{minutes_remainder:02d}")
+    duration_hm = f"{hours:02d}:{minutes_remainder:02d}"
+    return duration_hm
+
+def tasks_time_one_day(tasks: list["Task"], day: datetime) -> tuple[int, str]:
+    """
+    Oblicza łączny czas pracy dla danego dnia na podstawie listy tasków przypisanych do tego dnia
+    
+    Args:
+        taks_day (lista_tasków)
+        duation_min (int)
+    Returns:
+        Sumę przepracowanych minut dla danego dnia ([int, string])
+    Raises:
+        TypeError: Jeśli format danych wejściowych jest niepoprawny
+    Examples:
+    """
+    total_min_day = 0
+    for task in tasks:
+        if task.task_start.date() == day.date():
+            total_min_day += calculate_task_duration(task.task_start, task.task_stop)
+        total_duration_day_min = total_min_day
+        total_duration_day_hm = time_conversion(total_min_day)
+        return total_duration_day_min, total_duration_day_hm

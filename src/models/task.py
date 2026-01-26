@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from typing import Optional, Literal
-
+from src.core.time.task_duration import calculate_task_duration
 @dataclass
 class Task:
     """
