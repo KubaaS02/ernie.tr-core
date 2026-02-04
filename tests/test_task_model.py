@@ -12,3 +12,6 @@ class TestTaskModel:
                 new_task.task_stop
             )
             assert result == 1
+    
+    def test_task_types(self) -> None:
+        assert Task.task_id == int

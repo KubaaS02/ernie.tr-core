@@ -1,7 +1,6 @@
-from datetime import datetime, time
+from datetime import datetime, time, date
 from typing import Union, List, Tuple
-from src.models.task import Task
-
+#from models.task import Task
 def _to_minutes_from_midnight(dt: datetime) -> int:
     """
     Konwertuje czas doby na minuty od północy (00:00).
@@ -150,7 +149,7 @@ def time_conversion(duration_min: int) -> str:
     duration_hm = f"{hours:02d}:{minutes_remainder:02d}"
     return duration_hm
 
-def tasks_time_one_day(tasks: list["Task"], day: datetime) -> tuple[int, str]:
+def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
     """
     Oblicza łączny czas pracy dla danego dnia na podstawie listy tasków przypisanych do tego dnia
     
@@ -162,11 +161,34 @@ def tasks_time_one_day(tasks: list["Task"], day: datetime) -> tuple[int, str]:
     Raises:
         TypeError: Jeśli format danych wejściowych jest niepoprawny
     Examples:
+        >>> tasks = [
+        ...     Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 10, 4)),
+        ...     Task(task_id="2", task_start=datetime(2025, 11, 1, 14, 30), task_stop=datetime(2025, 11, 1, 16, 5))
+        >>> tasks_time_one_day(tasks, datetime(2025, 11, 1))
+        (189, '03:09')
     """
     total_min_day = 0
     for task in tasks:
         if task.task_start.date() == day.date():
-            total_min_day += calculate_task_duration(task.task_start, task.task_stop)
-        total_duration_day_min = total_min_day
-        total_duration_day_hm = time_conversion(total_min_day)
-        return total_duration_day_min, total_duration_day_hm
+            total_min_day += task.duration_min
+    total_duration_day_min = total_min_day
+    total_duration_day_hm = time_conversion(total_min_day)
+    return total_duration_day_min, total_duration_day_hm
+
+
+def month_days(year:date, month:date) -> int:
+    if month == 12:
+        return 31
+    first_day = date(year, month, 1)
+    first_next = date(year, month + 1,1)
+    return (first_next - first_day).days
+
+def tasks_time_one_month(tasks: List, year:datetime, month:datetime) -> Tuple[int,str]:
+    days_in_month = month_days(year, month)
+    total_min_month = 0
+    for day in range(1,days_in_month + 1,1):
+        day_min, day_hm = tasks_time_one_day(tasks, datetime(year, month, day))
+        total_min_month += day_min
+    total_duration_month_min = total_min_month
+    total_duration_month_hm = time_conversion(total_min_month)
+    return total_duration_month_min, total_duration_month_hm
