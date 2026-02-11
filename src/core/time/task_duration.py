@@ -1,5 +1,6 @@
 from datetime import datetime, time, date
 from typing import Union, List, Tuple
+from src.core.time.helpers.time import month_days
 #from models.task import Task
 def _to_minutes_from_midnight(dt: datetime) -> int:
     """
@@ -176,18 +177,11 @@ def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
     return total_duration_day_min, total_duration_day_hm
 
 
-def month_days(year:date, month:date) -> int:
-    if month == 12:
-        return 31
-    first_day = date(year, month, 1)
-    first_next = date(year, month + 1,1)
-    return (first_next - first_day).days
-
-def tasks_time_one_month(tasks: List, year:datetime, month:datetime) -> Tuple[int,str]:
-    days_in_month = month_days(year, month)
+def tasks_time_one_month(tasks: List, month:datetime) -> Tuple[int,str]:# zmodyfikować, żeby brało tylko taski za jeden miesiąc, bez podawania roku
+    days_in_month = month_days(month)
     total_min_month = 0
     for day in range(1,days_in_month + 1,1):
-        day_min, day_hm = tasks_time_one_day(tasks, datetime(year, month, day))
+        day_min, day_hm = tasks_time_one_day(tasks, datetime(month.year, month.month, day))
         total_min_month += day_min
     total_duration_month_min = total_min_month
     total_duration_month_hm = time_conversion(total_min_month)

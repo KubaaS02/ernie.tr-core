@@ -14,4 +14,6 @@ class TestTaskModel:
             assert result == 1
     
     def test_task_types(self) -> None:
-        assert Task.task_id == int
+        task = Task(datetime(2025, 11, 1, 10, 00), datetime(2025, 11, 1, 10, 00), "task_123")
+        assert type(task.task_id) is str
+        assert isinstance(task.task_id, str)
