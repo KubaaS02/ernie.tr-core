@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from dataclasses import dataclass
 from typing import Optional, Literal
-from src.core.time.task_duration import calculate_task_duration
+from core.time.task_duration import calculate_task_duration
 @dataclass
 class Task:
     """
@@ -23,6 +23,7 @@ class Task:
     status: Literal["Zapłacone", "Oczekuje", "W trakcie"] = "Oczekuje"
     payment_date: Optional[datetime] = None
     duration_min: int = 1
+    rate_pln_per_h: Optional[float] = None
     def __post_init__(self) -> None:
         """Walidacja danych po inicjalizacji"""
         if self.task_start > self.task_stop:
