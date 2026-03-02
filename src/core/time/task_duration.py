@@ -1,6 +1,6 @@
 from datetime import datetime, time, date
 from typing import Union, List, Tuple
-from src.core.time.helpers.time import month_days
+from core.time.helpers.time import month_days
 #from models.task import Task
 def _to_minutes_from_midnight(dt: datetime) -> int:
     """
