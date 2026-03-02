@@ -1,8 +1,8 @@
 import pytest
 from datetime import datetime
-from src.core.time.task_duration import calculate_task_duration
-
-
+from src.core.time.task_duration import calculate_task_duration, tasks_time_one_day, tasks_time_one_month
+from src.models.task import Task
+from typing import Tuple
 class TestCalculateTaskDuration:
     """Testy obliczania czasu trwania tasku"""
     
@@ -178,3 +178,30 @@ class TestCalculateTaskDuration:
             "2025-11-16 06:00"
         )
         assert result == 480  # 8 godzin
+    
+    def test_tasks_time_one_day(self):
+        tasks = [Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 10, 4)), Task(task_id="2", task_start=datetime(2025, 11, 1, 14, 30), task_stop=datetime(2025, 11, 1, 16, 5))]
+        total_min, total_hm = tasks_time_one_day(tasks, datetime(2025, 11, 1))
+        assert total_min == 159
+        assert total_hm == '02:39'
+    
+    def test_tasks_time_one_month(self):
+        tasks = [
+            Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 10, 4)),
+            Task(task_id="2", task_start=datetime(2025, 11, 1, 14, 30), task_stop=datetime(2025, 11, 1, 16, 5)),
+            Task(task_id="3", task_start=datetime(2025, 11, 2, 10, 0),  task_stop=datetime(2025, 11, 2, 11, 0))
+        ]
+        total_min, total_hm = tasks_time_one_month(tasks, datetime(2025, 11, 1))
+        assert total_min == 219
+        assert total_hm == '03:39'
+        
+    def test_task_time_one_day_correct_month(self):
+        tasks = [
+            Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 10, 4)),
+            Task(task_id="2", task_start=datetime(2025, 11, 1, 14, 30), task_stop=datetime(2025, 11, 1, 16, 5)),
+            Task(task_id="3", task_start=datetime(2025, 11, 2, 10, 0),  task_stop=datetime(2025, 11, 2, 11, 0)),
+            Task(task_id="4", task_start=datetime(2025, 12, 2, 10, 0),  task_stop=datetime(2025, 12, 2, 11, 0))
+        ]
+        total_min,total_hm = tasks_time_one_month(tasks, datetime(2025, 11, 1))
+        assert total_min == 219
+        assert total_hm == '03:39'

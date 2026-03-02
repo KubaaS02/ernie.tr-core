@@ -166,7 +166,7 @@ def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
         ...     Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 10, 4)),
         ...     Task(task_id="2", task_start=datetime(2025, 11, 1, 14, 30), task_stop=datetime(2025, 11, 1, 16, 5))
         >>> tasks_time_one_day(tasks, datetime(2025, 11, 1))
-        (189, '03:09')
+        (159, '02:39')
     """
     total_min_day = 0
     for task in tasks:
