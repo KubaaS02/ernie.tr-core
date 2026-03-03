@@ -155,18 +155,20 @@ def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
     Oblicza łączny czas pracy dla danego dnia na podstawie listy tasków przypisanych do tego dnia
     
     Args:
-        taks_day (lista_tasków)
-        duation_min (int)
+        tasks: Rozpoczęte taski (List)
+        day: Dzień w którym rozpoczęto taski (datetime)
+            Format: "YYYY-MM-DD HH:MM" lub "YYYY-MM-DD HH:MM:SS"
     Returns:
-        Sumę przepracowanych minut dla danego dnia ([int, string])
+        Suma przepracowanych minut dla danego dnia Tuple[int, string]
     Raises:
         TypeError: Jeśli format danych wejściowych jest niepoprawny
     Examples:
         >>> tasks = [
         ...     Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 10, 4)),
-        ...     Task(task_id="2", task_start=datetime(2025, 11, 1, 14, 30), task_stop=datetime(2025, 11, 1, 16, 5))
-        >>> tasks_time_one_day(tasks, datetime(2025, 11, 1))
-        (159, '02:39')
+        ...     Task(task_id="2", task_start=datetime(2025, 11, 1, 14, 30), task_stop=datetime(2025, 11, 1, 16, 5))]
+        >>> total_min, total_hm = tasks_time_one_day(tasks, datetime(2025, 11, 1))
+        total_min = 159
+        total_hm = "02:39"
     """
     total_min_day = 0
     for task in tasks:
@@ -177,7 +179,27 @@ def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
     return total_duration_day_min, total_duration_day_hm
 
 
-def tasks_time_one_month(tasks: List, month:datetime) -> Tuple[int,str]:# zmodyfikować, żeby brało tylko taski za jeden miesiąc, bez podawania roku 
+def tasks_time_one_month(tasks: List, month:datetime) -> Tuple[int,str]:
+    """
+    Oblicza łączny czas pracy dla danego miesiąca na podstawie listy tasków przypisanych do tego miesiąca
+    
+    Args:
+        tasks: Rozpoczęte taski (List)
+        month: Miesiąc w którym rozpoczęto taski (datetime)
+            Format: "YYYY-MM-DD HH:MM" lub "YYYY-MM-DD HH:MM:SS"
+    
+    Returns:
+        Suma przepracowanych minut dla danego miesiąca Typle[int, str]
+    
+    Example:
+        >>> tasks = [
+        ...     Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 10, 4)),
+        ...     Task(task_id="2", task_start=datetime(2025, 11, 1, 14, 30), task_stop=datetime(2025, 11, 1, 16, 5)),
+        ...     Task(task_id="3", task_start=datetime(2025, 11, 2, 10, 0),  task_stop=datetime(2025, 11, 2, 11, 0)),]
+        >>> total_min, total_hm = tasks_time_one_month(tasks, datetime(2025, 11, 1))
+        total_min = 219
+        total_hm = "03:39
+    """
     days_in_month = month_days(month)
     total_min_month = 0
     for day in range(1,days_in_month + 1,1):
