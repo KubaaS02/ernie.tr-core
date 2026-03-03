@@ -8,6 +8,7 @@ dependencies = [
     "mypy>=1.19.1",
     "poethepoet>=0.40.0",
     "pytest>=9.0.2",
+    "requests>=2.32.5",
 ]
 
 [tools.poethepoet.tasks]
