@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional, Literal
 from core.time.task_duration import calculate_task_duration
 @dataclass
-class Task:
+class Task: # naprawić, żeby najpierw był pola, które muszą zostać wypełnione, dopiero potem mogą być ktore moga byc puste
     """
     Model reprezentujący pojedyncze zadanie (task).
     
@@ -19,22 +19,22 @@ class Task:
     task_start: datetime
     task_stop: datetime
     task_id: str
+    title: str
+    task_date: date
+    created_at: datetime
+    updated_at: datetime
+    is_locked: bool
     comment: str = ""
     status: Literal["Zapłacone", "Oczekuje", "W trakcie"] = "Oczekuje"
     payment_date: Optional[datetime] = None
     duration_min: int = 1
     rate_pln_per_h: Optional[float] = None
-    title: str
     description: Optional[str] = None
-    task_date: date
     cost_approx_pln: Optional[float] = None
     cost_approx_eur: Optional[float] = None
     cost_actual_pln: Optional[float] = None
     cost_actual_eur: Optional[float] = None
     diff: float | None = None
-    created_at: datetime
-    updated_at: datetime
-    is_locked: bool
     def __post_init__(self) -> None:
         """Walidacja danych po inicjalizacji"""
         if self.task_start > self.task_stop:
