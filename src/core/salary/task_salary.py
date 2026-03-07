@@ -1,5 +1,5 @@
 from models.task import Task
-
+import requests
 def approx_cost_pln(task:Task, rate_pln_per_h:float) -> float:
     rate = task.rate_pln_per_h if task.rate_pln_per_h is not None else rate_pln_per_h
     
@@ -18,3 +18,14 @@ def approx_cost_from_PLN_to_EURO(task:Task, rate_euro_pln:float) -> float:
     cost_approx_eur_raw = task.cost_approx_pln / rate_euro_pln
     cost_approx_eur = round(cost_approx_eur_raw, 2)
     return cost_approx_eur
+
+def get_NBP_euro_rate(task:Task):
+    date = task.created_at
+    url = f"https://api.nbp.pl/api/exchangerates/rates/A/EUR/{date}?format=json"
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        return round(float(data["rates"][0]["mid"]),2)
+    except:
+        pass
