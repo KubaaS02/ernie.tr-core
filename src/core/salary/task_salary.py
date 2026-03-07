@@ -9,18 +9,18 @@ def approx_cost_pln(task:Task, rate_pln_per_h:float) -> float:
         rate_pln_per_h: Kwota na godzinę w złotówkach (float)
     
     Returns:
-        Przybliżony koszt tasku w PLN (float)
+        PRzybliżony koszt tasku w PLN (float)
     
     Raises:
         ValueError: Stawka za godzinę musi być większa niż 0
     
     Examples:
-        # Stawka za godzinę jest ustalona przy tworzeniu Taska. Nie bierze kwoty na godzinę z argumentu funkcji.
+        # Stawka za godzinę jest ustalona przy tworzeniu Taska
         >>> task = Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 11, ), rate_pln_per_h = 60)
         >>> approx_cost_pln(task, rate_pln_per_h=999)
         (120.0)
         
-        # Stawka za godzinę jest nie ustalona przy tworzeniu Taska. Funkcja bierze kwotę na godzinę z argumentu funkcji.
+        # Stawka za godzinę jest nie ustalona przy tworzeniu Taska. Funkcja bierze kwotę na godzinę z argumentu funkcji
         >>> task = Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 11, ))
         >>> approx_cost_pln(task, rate_pln_per_h=120)
         (240.0)
