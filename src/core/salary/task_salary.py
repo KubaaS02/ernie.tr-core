@@ -34,3 +34,28 @@ def approx_cost_pln(task:Task, rate_pln_per_h:float) -> float:
     cost_approx_pln_raw = duration_hours * rate
     cost_approx_pln = round(cost_approx_pln_raw, 2)
     return cost_approx_pln
+
+def approx_cost_from_PLN_to_EURO(task:Task, rate_euro_pln:float) -> float: 
+    """
+    Algorytm przelicza koszt przybliżony z PLN na EUR na podstawie aktualnego kursu.
+    
+    Args:
+        task: Pojedyńczy task (Task)
+        rate_euro_pln: Kurs euro
+    
+    Returns:
+        Przybliżony koszt tasku w EUR (float)
+    
+    Raises:
+        ValueError: Kurs musi być większy niż 0
+    
+    Example:
+        >>> task = Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 11, ), cost_approx_pln = 1500)
+        >>> approx_cost_pln(task, rate_euro_pln=0.23)
+        (345)
+    """
+    if rate_euro_pln <=0 : 
+        raise ValueError("Kurs musi być większy niż 0") 
+    cost_approx_eur_raw = task.cost_approx_pln / rate_euro_pln 
+    cost_approx_eur = round(cost_approx_eur_raw, 2) 
+    return cost_approx_eur
