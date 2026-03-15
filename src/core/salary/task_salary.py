@@ -1,5 +1,5 @@
 from models.task import Task
-
+import requests
 def approx_cost_pln(task:Task, rate_pln_per_h:float) -> float:
     """
     Algorytm oblicza przybliżony koszt tasku w PLN na podstawie czasu pracy i stawki godzinowej.
