@@ -29,6 +29,7 @@ class Task: # naprawić, żeby najpierw był pola, które muszą zostać wypełn
     payment_date: Optional[datetime] = None
     duration_min: int = 1
     rate_pln_per_h: Optional[float] = None
+    #! TODO: Dodać pole exchange_rate_eur
     description: Optional[str] = None
     cost_approx_pln: Optional[float] = None
     cost_approx_eur: Optional[float] = None
