@@ -1,6 +1,6 @@
 import pytest
 from src.models.task import Task
-from src.core.salary.task_salary import approx_cost_pln
+from src.core.salary.task_salary import approx_cost_pln, approx_cost_from_PLN_to_EURO
 from datetime import datetime
 class TestCalculateTaskSalary:
     """Testy obliczania operacji pieniężnych tasku"""
@@ -25,6 +25,19 @@ class TestCalculateTaskSalary:
         assert result == 240.0 # 240 zł
     
     def test_test_approx_cost_pln_is0(self) -> None:
+        """Test, czy funkcja pokaże błąd, gdy stawka godzinowa wynosi 0"""
         task = Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 11, ), rate_pln_per_h = 0)
         with pytest.raises(ValueError):
             approx_cost_pln(task, rate_pln_per_h= 0)
+    
+    def test_approx_cost_from_PLN_to_EURO(self) -> None:
+        """Test, czy funkcja działa poprawnie"""
+        task = Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 11, ), cost_approx_pln = 1500, exchange_rate_eur= 4.50)
+        result: float = approx_cost_from_PLN_to_EURO(task)
+        assert result == 333.33
+    
+    def test_approx_cost_from_PLN_to_EURO_is0(self) -> None:
+        """Test, czy funkcja pokaże błąd, gdy kurs dla euro wynosi 0"""
+        task = Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 11, ), cost_approx_pln = 1500, exchange_rate_eur= 0.00)
+        with pytest.raises(ValueError):
+            approx_cost_from_PLN_to_EURO(task)
