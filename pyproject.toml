@@ -13,3 +13,9 @@ dependencies = [
 
 [tools.poethepoet.tasks]
 test = "pytest tests"
+
+[tool.setuptools.package-data]
+models = ["py.typed"]
+
+#[mypy]
+#ignore_missing_imports = True
