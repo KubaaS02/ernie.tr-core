@@ -43,7 +43,6 @@ def approx_cost_from_PLN_to_EURO(task: Task) -> float:
 
     Args:
         task: Pojedyńczy task (Task)
-        rate_euro_pln: Kurs euro
 
     Returns:
         Przybliżony koszt tasku w EUR (float)
@@ -62,6 +61,6 @@ def approx_cost_from_PLN_to_EURO(task: Task) -> float:
 
     if rate_euro_pln <= 0:
         raise ValueError("Kurs musi być większy niż 0")
-    cost_approx_eur_raw = task.cost_approx_pln / rate_euro_pln
-    cost_approx_eur = round(cost_approx_eur_raw, 2)
+    cost_approx_eur_raw: float = task.cost_approx_pln / rate_euro_pln
+    cost_approx_eur: float = round(cost_approx_eur_raw, 2)
     return cost_approx_eur
