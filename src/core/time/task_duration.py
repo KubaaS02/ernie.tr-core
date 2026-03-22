@@ -180,7 +180,7 @@ def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
 def tasks_time_one_month(tasks: List, month:datetime) -> Tuple[int,str]:# zmodyfikować, żeby brało tylko taski za jeden miesiąc, bez podawania roku 
     days_in_month = month_days(month)
     total_min_month = 0
-    for day in range(1,days_in_month + 1,1):
+    for day in range(1,days_in_month,1):
         day_min, day_hm = tasks_time_one_day(tasks, datetime(month.year, month.month, day))
         total_min_month += day_min
     total_duration_month_min = total_min_month
