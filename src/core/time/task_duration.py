@@ -1,14 +1,16 @@
 from datetime import datetime, time, date
 from typing import Union, List, Tuple
 from src.core.time.helpers.time import month_days
-#from models.task import Task
+# from models.task import Task
+
+
 def _to_minutes_from_midnight(dt: datetime) -> int:
     """
     Konwertuje czas doby na minuty od północy (00:00).
-    
+
     Args:
         dt: Obiekt datetime
-        
+
     Returns:
         Liczba minut od północy (0-1440)
     """
@@ -18,24 +20,24 @@ def _to_minutes_from_midnight(dt: datetime) -> int:
 def _parse_datetime(dt_input: Union[str, datetime]) -> datetime:
     """
     Parsuje wejście do formatu datetime.
-    
+
     Obsługuje formaty:
     - "YYYY-MM-DD HH:MM"
     - "YYYY-MM-DD HH:MM:SS"
     - obiekt datetime
-    
+
     Args:
         dt_input: String lub datetime
-        
+
     Returns:
         Obiekt datetime
-        
+
     Raises:
         ValueError: Jeśli format nie jest obsługiwany
     """
     if isinstance(dt_input, datetime):
         return dt_input
-    
+
     if isinstance(dt_input, str):
         try:
             return datetime.strptime(dt_input, "%Y-%m-%d %H:%M:%S")
@@ -49,7 +51,7 @@ def _parse_datetime(dt_input: Union[str, datetime]) -> datetime:
                 f"Nieobsługiwany format czasu: {dt_input}. "
                 f"Obsługiwane: 'YYYY-MM-DD HH:MM' lub 'YYYY-MM-DD HH:MM:SS'"
             )
-    
+
     raise TypeError(f"Oczekiwano str lub datetime, otrzymano {type(dt_input)}")
 
 
@@ -59,26 +61,26 @@ def calculate_task_duration(
 ) -> int:
     """
     Oblicza czas trwania tasku w minutach.
-    
+
     Obsługuje:
     - Zwykłe taski (start i stop tego samego dnia)
     - Taski przechodzące przez północ (start dzisiaj, stop jutro)
     - Sekundy (są zaokrąglane do minut)
     - Minimalna jednostka = 1 minuta
-    
+
     Args:
         task_start: Czas rozpoczęcia (str lub datetime)
                 Format: "YYYY-MM-DD HH:MM" lub "YYYY-MM-DD HH:MM:SS"
         task_stop: Czas zakończenia (str lub datetime)
                 Format: "YYYY-MM-DD HH:MM" lub "YYYY-MM-DD HH:MM:SS"
-    
+
     Returns:
         Czas trwania tasku w minutach (minimum 1)
-    
+
     Raises:
         ValueError: Jeśli task_start > task_stop
         TypeError: Jeśli format wejścia jest nieprawidłowy
-    
+
     Examples:
         >>> # Zwykły task - 64 minuty
         >>> calculate_task_duration(
@@ -86,14 +88,14 @@ def calculate_task_duration(
         ...     "2025-11-01 20:48"
         ... )
         64
-        
+
         >>> # Task przez północ - 45 minut
         >>> calculate_task_duration(
         ...     "2025-11-01 23:30",
         ...     "2025-11-02 00:15"
         ... )
         45
-        
+
         >>> # Krótki task z sekundami - 1 minuta
         >>> calculate_task_duration(
         ...     "2025-11-01 09:00:00",
@@ -103,35 +105,36 @@ def calculate_task_duration(
     """
     start = _parse_datetime(task_start)
     stop = _parse_datetime(task_stop)
-    
+
     if start > stop:
         raise ValueError(
             f"task_start ({start}) nie może być później niż task_stop ({stop})"
         )
-    
+
     duration_raw = (stop - start).total_seconds() / 60
-    
+
     if start.date() != stop.date() and duration_raw < 0:
         pass
 
     duration_minutes = round(duration_raw)
-    
+
     return max(duration_minutes, 1)
+
 
 def time_conversion(duration_min: int) -> str:
     """
     Konwertuje czas pracy z minut na format godzin i minut (HH:MM)
-    
+
     Args:
         Czas pracy w minutach (int)
-    
+
     Returns:
         Czas pracy w formacie string (HH:MM)
-    
+
     Raises:
         TypeError: Jeśli format danych wejściowych jest niepoprawny
         ValueError: Jeśli duration_min < 0
-    
+
     Example:
         >>> # zwykły task 64 min
         >>> time_conversion(64)
@@ -150,10 +153,11 @@ def time_conversion(duration_min: int) -> str:
     duration_hm = f"{hours:02d}:{minutes_remainder:02d}"
     return duration_hm
 
+
 def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
     """
     Oblicza łączny czas pracy dla danego dnia na podstawie listy tasków przypisanych do tego dnia
-    
+
     Args:
         taks_day (lista_tasków)
         duation_min (int)
@@ -177,11 +181,12 @@ def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
     return total_duration_day_min, total_duration_day_hm
 
 
-def tasks_time_one_month(tasks: List, month:datetime) -> Tuple[int,str]:# zmodyfikować, żeby brało tylko taski za jeden miesiąc, bez podawania roku 
+def tasks_time_one_month(tasks: List, month: datetime) -> Tuple[int, str]:
     days_in_month = month_days(month)
     total_min_month = 0
-    for day in range(1,days_in_month,1):
-        day_min, day_hm = tasks_time_one_day(tasks, datetime(month.year, month.month, day))
+    for day in range(1, days_in_month, 1):
+        day_min, day_hm = tasks_time_one_day(
+            tasks, datetime(month.year, month.month, day))
         total_min_month += day_min
     total_duration_month_min = total_min_month
     total_duration_month_hm = time_conversion(total_min_month)
