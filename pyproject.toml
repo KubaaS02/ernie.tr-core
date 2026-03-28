@@ -11,5 +11,19 @@ dependencies = [
     "requests>=2.32.5",
 ]
 
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+models = ["py.typed"]
+core = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.14"
+pretty = true
+show_error_codes = true
+warn_unused_ignores = true
+
 [tools.poethepoet.tasks]
 test = "pytest tests"
