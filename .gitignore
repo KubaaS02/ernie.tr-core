@@ -3,6 +3,7 @@ __pycache__/
 *.py[codz]
 *$py.class
 src/core/testowanie
+.vscode
 # C extensions
 *.so
 
