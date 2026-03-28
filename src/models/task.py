@@ -50,7 +50,7 @@ class Task:
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
     is_locked: Optional[bool] = None
-    diff: float | None = None
+    diff: Optional[float] = None
     def __post_init__(self) -> None:
         """Walidacja danych po inicjalizacji"""
         if self.task_start > self.task_stop:
