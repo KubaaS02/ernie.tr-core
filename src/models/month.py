@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from typing import List
 
+
 @dataclass
 class Month:
     """
     Model reprezentujący jeden miesiąc (month)
-    
+
     Attributes:
         month_id: Unikatowy identyfikator miesiąca
         user_id: Identyfikator użytkownika
@@ -23,7 +24,7 @@ class Month:
         num_tasks_paid: Liczba opłaconych zadań w danym miesiącu
         num_tasks_unpaid: Liczba nie opłaconych zadań w danym miesiącu
     """
-    
+
     month_id: str
     user_id:  str
     year: int
@@ -39,4 +40,15 @@ class Month:
     num_tasks_total: int
     num_tasks_paid: int
     num_tasks_unpaid: int
-    #! TODO: dodać do konstruktora funkcję, która oblicza total_duration_month
+
+    def correct_days_number(self):
+        raise NotImplementedError(
+            "This validation method must be implemented after succes bridge with Database")
+
+    def unique_month_id(self):
+        raise NotImplementedError(
+            "This validation method must be implemented after succes bridge with Database")
+
+    def mins_sum_have_correct_days_number(self):
+        raise NotImplementedError(
+            "This validation method must be implemented after succes bridge with Database")
