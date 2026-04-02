@@ -159,8 +159,8 @@ def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
     Oblicza łączny czas pracy dla danego dnia na podstawie listy tasków przypisanych do tego dnia
 
     Args:
-        taks_day (lista_tasków)
-        duation_min (int)
+        task_day (lista_tasków)
+        day
     Returns:
         Sumę przepracowanych minut dla danego dnia ([int, string])
     Raises:
@@ -182,6 +182,30 @@ def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
 
 
 def tasks_time_one_month(tasks: List, month: datetime) -> Tuple[int, str]:
+    """
+    Obliczanie łącznego czasu pracy dla danego miesiąca
+    
+    Args:
+        task (lista_tasków)
+        month
+    Returns:
+        Sumę przepracowanych minut dla danego miesiąca
+    Examples:
+        >>> tasks = [
+        ...     Task(
+        ...         task_id="1",
+        ...         task_start=datetime(2025, 11, 1, 9, 0),
+        ...         task_stop=datetime(2025, 11, 1, 11, 0),
+        ...     ),
+        ...     Task(
+        ...         task_id="2",
+        ...         task_start=datetime(2025, 11, 2, 10, 0),
+        ...         task_stop=datetime(2025, 11, 2, 13, 30),
+        ...     ),
+        ... ]
+        >>> tasks_time_one_month(tasks, datetime(2025, 11, 1))
+        (330, '05:30')
+    """
     days_in_month = month_days(month)
     total_min_month = 0
     for day in range(1, days_in_month, 1):
