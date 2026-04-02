@@ -184,7 +184,7 @@ def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
 def tasks_time_one_month(tasks: List, month: datetime) -> Tuple[int, str]:
     """
     Obliczanie łącznego czasu pracy dla danego miesiąca
-    
+
     Args:
         task (lista_tasków)
         month
