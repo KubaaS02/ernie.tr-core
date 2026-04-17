@@ -27,3 +27,15 @@ warn_unused_ignores = true
 
 [tools.poethepoet.tasks]
 test = "pytest tests"
+
+[tool.setuptools.package-data]
+models = ["py.typed"]
+
+[tool.mypy]
+python_version = "3.14"
+pretty = true
+show_error_codes = true
+warn_unused_ignores = true
+
+#[mypy]
+#ignore_missing_imports = True

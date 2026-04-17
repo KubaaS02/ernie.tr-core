@@ -10,7 +10,7 @@ def approx_cost_pln(task: Task, rate_pln_per_h: float) -> float:
         rate_pln_per_h: Kwota na godzinę w złotówkach (float)
 
     Returns:
-        Przybliżony koszt tasku w PLN (float)
+        PRzybliżony koszt tasku w PLN (float)
 
     Raises:
         ValueError: Stawka za godzinę musi być większa niż 0
@@ -26,16 +26,41 @@ def approx_cost_pln(task: Task, rate_pln_per_h: float) -> float:
         >>> approx_cost_pln(task, rate_pln_per_h=120)
         (240.0)
     """
-    rate: float = (
-        task.rate_pln_per_h
-        if task.rate_pln_per_h is not None
-        else rate_pln_per_h
-    )
+    rate = task.rate_pln_per_h if task.rate_pln_per_h is not None else rate_pln_per_h
 
     if rate <= 0:
         raise ValueError("Stawka za godzinę musi być większa niż 0")
 
-    duration_hours: float = task.duration_min / 60
-    cost_approx_pln_raw: float = duration_hours * rate
-    cost_approx_pln: float = round(cost_approx_pln_raw, 2)
+    duration_hours = task.duration_min / 60
+    cost_approx_pln_raw = duration_hours * rate
+    cost_approx_pln = round(cost_approx_pln_raw, 2)
     return cost_approx_pln
+
+
+def approx_cost_from_PLN_to_EURO(task: Task) -> float:
+    """
+    Algorytm przelicza koszt przybliżony z PLN na EUR na podstawie aktualnego kursu.
+
+    Args:
+        task: Pojedyńczy task (Task)
+
+    Returns:
+        Przybliżony koszt tasku w EUR (float)
+
+    Raises:
+        ValueError: Kurs musi być większy niż 0
+
+    Example:
+        >>> task = Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),  task_stop=datetime(2025, 11, 1, 11, ), cost_approx_pln = 1500)
+        >>> approx_cost_pln(task, rate_euro_pln=4.50)
+        (333.33)
+    """
+    rate_euro_pln = task.exchange_rate_eur
+    if task.cost_approx_pln is None:
+        raise ValueError("Brak cost_approx_pln")
+
+    if rate_euro_pln <= 0:
+        raise ValueError("Kurs musi być większy niż 0")
+    cost_approx_eur_raw: float = task.cost_approx_pln / rate_euro_pln
+    cost_approx_eur: float = round(cost_approx_eur_raw, 2)
+    return cost_approx_eur
