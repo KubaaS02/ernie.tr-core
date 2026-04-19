@@ -55,7 +55,7 @@ def _parse_datetime(dt_input: Union[str, datetime]) -> datetime:
     raise TypeError(f"Oczekiwano str lub datetime, otrzymano {type(dt_input)}")
 
 
-def calculate_task_duration(
+def get_task_time_duration(
     task_start: Union[str, datetime],
     task_stop: Union[str, datetime]
 ) -> int:
@@ -121,7 +121,7 @@ def calculate_task_duration(
     return max(duration_minutes, 1)
 
 
-def time_conversion(duration_min: int) -> str:
+def get_converted_time_duration(duration_min: int) -> str:
     """
     Konwertuje czas pracy z minut na format godzin i minut (HH:MM)
 
@@ -154,7 +154,7 @@ def time_conversion(duration_min: int) -> str:
     return duration_hm
 
 
-def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
+def get_tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
     """
     Oblicza łączny czas pracy dla danego dnia na podstawie listy tasków przypisanych do tego dnia
 
@@ -178,11 +178,11 @@ def tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
         if task.task_start.date() == day.date():
             total_min_day += task.duration_min
     total_duration_day_min = total_min_day
-    total_duration_day_hm = time_conversion(total_min_day)
+    total_duration_day_hm = get_converted_time_duration(total_min_day)
     return total_duration_day_min, total_duration_day_hm
 
 
-def tasks_time_one_month(tasks: List, month: datetime) -> Tuple[int, str]:
+def get_tasks_time_one_month(tasks: List, month: datetime) -> Tuple[int, str]:
     """
     Obliczanie łącznego czasu pracy dla danego miesiąca
 
@@ -210,9 +210,9 @@ def tasks_time_one_month(tasks: List, month: datetime) -> Tuple[int, str]:
     days_in_month = month_days(month)
     total_min_month = 0
     for day in range(1, days_in_month, 1):
-        day_min, day_hm = tasks_time_one_day(
+        day_min, day_hm = get_tasks_time_one_day(
             tasks, datetime(month.year, month.month, day))
         total_min_month += day_min
     total_duration_month_min = total_min_month
-    total_duration_month_hm = time_conversion(total_min_month)
+    total_duration_month_hm = get_converted_time_duration(total_min_month)
     return total_duration_month_min, total_duration_month_hm

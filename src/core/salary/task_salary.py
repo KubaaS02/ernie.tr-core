@@ -1,7 +1,7 @@
 from models.task import Task
+import requests
 
-
-def approx_cost_pln(task: Task, rate_pln_per_h: float) -> float:
+def get_approx_cost_pln(task: Task, rate_pln_per_h: float) -> float:
     """
     Algorytm oblicza przybliżony koszt tasku w PLN na podstawie czasu pracy i stawki godzinowej.
 
@@ -37,7 +37,7 @@ def approx_cost_pln(task: Task, rate_pln_per_h: float) -> float:
     return cost_approx_pln
 
 
-def approx_cost_from_PLN_to_EURO(task: Task) -> float:
+def get_approx_cost_from_pln_to_euro(task: Task) -> float:
     """
     Algorytm przelicza koszt przybliżony z PLN na EUR na podstawie aktualnego kursu.
 
@@ -64,3 +64,43 @@ def approx_cost_from_PLN_to_EURO(task: Task) -> float:
     cost_approx_eur_raw: float = task.cost_approx_pln / rate_euro_pln
     cost_approx_eur: float = round(cost_approx_eur_raw, 2)
     return cost_approx_eur
+
+def get_nbp_euro_rate(task:Task) -> float:
+    exchange_rate: float = 0.0
+    
+    def get_exchange_rate():
+        #! TODO: Jak będzie udostępnione API do bazy danych to:
+        #! Pobrac ostatni task, jeżeli jest to możliwe, to wziąć z niego kurs z pola exchange_rate_eur
+        #! Jeżeli baza danych nie będzie posidać task, to użyć global_exchange_rate_eur
+        #! jezeli brak global_exchange_rate_eur to zwracamy 0
+        #! cała logika powinna być w funkcji wewnętrznej get_exchange_rate()
+        pass
+    
+    date = task.created_at
+    url = f"https://api.nbp.pl/api/exchangerates/rates/A/EUR/{date}?format=json"
+    try:
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        
+        return round(float(data["rates"][0]["mid"]),2)
+    
+    except requests.exceptions.RequestException:
+        #! TODO: Jak będzie udostępnione API do bazy danych to:
+        #! Pobrac ostatni task, jeżeli jest to możliwe, to wziąć z niego kurs z pola exchange_rate_eur
+        #! Jeżeli baza danych nie będzie posidać task, to użyć global_exchange_rate_eur
+        #! jezeli brak global_exchange_rate_eur to zwracamy 0
+        #! cała logika powinna być w funkcji wewnętrznej get_exchange_rate()
+        # fallback = task.last_rate if task.last_rate is not None else const_rate
+        # if fallback is None:
+        #     raise ValueError("Brak fallbacku: Podaj const_rate")
+        exchange_rate = get_exchange_rate()
+    finally:
+        #! TODO: Jak będzie udostępnione API do bazy danych to:
+        #! Pobrac ostatni task, jeżeli jest to możliwe, to wziąć z niego kurs z pola exchange_rate_eur
+        #! Jeżeli baza danych nie będzie posidać task, to użyć global_exchange_rate_eur
+        #! jezeli brak global_exchange_rate_eur to zwracamy 0
+        #! cała logika powinna być w funkcji wewnętrznej get_exchange_rate()
+        exchange_rate = get_exchange_rate()
+            
+    return exchange_rate
