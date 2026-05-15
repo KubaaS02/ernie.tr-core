@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, date
 from dataclasses import dataclass
 from typing import Optional, Literal
-from core.time.task_duration import calculate_task_duration
+from core.time.task_duration import get_task_time_duration
 @dataclass
 class Task:
     """
@@ -57,7 +57,7 @@ class Task:
             raise ValueError(
                 f"task_start ({self.task_start}) nie może być później niż task_stop ({self.task_stop})"
             )
-        self.duration_min = calculate_task_duration(self.task_start, self.task_stop)
+        self.duration_min = get_task_time_duration(self.task_start, self.task_stop)
     
     def __repr__(self) -> str:
         return (
