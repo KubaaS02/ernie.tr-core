@@ -26,8 +26,8 @@ class BusinessError(Exception):
                 f"{cls.__name__} must define his it's own error_id")
         if cls.error_id in cls._registered_ids:
             raise ValueError(f"Duplicate error_id detected:{cls.error_id}")
-        # dodałem cast bo mypy krzyczał, że nie wie czy to jest str czy None
-        cls._registered_ids.add(cast(str, cls.error_id))
+        
+        cls._registered_ids.add(str(cls.error_id))
 
     def __init__(self, message: str | None = None, details: dict | None = None, error_code: str | None = None):
         super().__init__(message)
