@@ -1,0 +1,11 @@
+from exceptions import BusinessError
+from typing import Optional
+
+
+class InvalidTaskTimeRangeError(BusinessError):
+    """Grupa błędów związanych z harmonogramem i czasem trwania"""
+
+    error_id: Optional[str] = "ERR-TIME-01"
+    error_code: Optional[str] = "invalid_task_time_range"
+    http_status: Optional[int] = 400
+    default_message: Optional[str] = "The start time of a task cannot be later than stop time"
