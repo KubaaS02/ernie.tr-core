@@ -35,8 +35,8 @@ class BusinessError(Exception):
         self.message = actual_message
         self.details = details or {}
         self.error_code = error_code or self.error_code
-#TODO zmienić na to_JSON, zaktualizowac dokumentacje zwiazana z to_dict na to_JSON
-    def to_dict(self) -> dict:
+
+    def to_JSON(self) -> dict:
         return {
             "error_code": self.error_code,
             "http_status": self.http_status,
