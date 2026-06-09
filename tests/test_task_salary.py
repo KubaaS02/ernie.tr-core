@@ -1,6 +1,6 @@
 import pytest
-from src.models.task import Task
-from src.core.salary.task_salary import get_approx_cost_pln, get_approx_cost_from_pln_to_euro
+from tests import Task
+from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro
 from datetime import datetime
 class TestCalculateTaskSalary:
     """Testy obliczania operacji pieniężnych tasku"""
