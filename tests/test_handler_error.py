@@ -1,5 +1,5 @@
 import pytest
-from exceptions.handler_error import BusinessError
+from tests import BusinessError
 
 
 def test_valid_subclass_registers_successfuly() -> None:
@@ -69,7 +69,7 @@ def test_to_dict_contains_required_keys() -> None:
         abstract = False
         error_id = "SOME-ERR"
 
-    result = SomeError().to_dict()
+    result = SomeError().to_JSON()
 
     assert "error_code" in result
     assert "http_status" in result
