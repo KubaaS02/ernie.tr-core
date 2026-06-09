@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
-from core.time.task_duration import get_task_time_duration, get_tasks_time_one_day, get_tasks_time_one_month
-from models.task import Task
+from tests import get_task_time_duration, get_tasks_time_one_day, get_tasks_time_one_month
+from tests import Task
 from typing import Tuple
 class TestCalculateTaskDuration:
     """Testy obliczania czasu trwania tasku"""
