@@ -1,7 +1,7 @@
 import pytest
 from datetime import datetime
-from core.time.task_duration import get_task_time_duration
-from models.task import Task
+from tests import get_task_time_duration
+from tests import Task
 
 class TestTaskModel:
     def test_task_model(self) -> None:
