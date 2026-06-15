@@ -69,7 +69,7 @@ def test_to_dict_contains_required_keys() -> None:
         abstract = False
         error_id = "SOME-ERR"
 
-    result = SomeError().to_JSON()
+    result = SomeError().to_json()
 
     assert "error_code" in result
     assert "http_status" in result
