@@ -36,7 +36,7 @@ class BusinessError(Exception):
         self.details = details or {}
         self.error_code = error_code or self.error_code
 
-    def to_JSON(self) -> dict:
+    def to_json(self) -> dict:
         return {
             "error_code": self.error_code,
             "http_status": self.http_status,
