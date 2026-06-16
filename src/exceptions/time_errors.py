@@ -1,7 +1,8 @@
 from exceptions import BusinessError
 from typing import Optional
 
-
+"""Grupa błędów związanych z harmonogramem i czasem trwania"""
+#TODO: dopisać opisy błędów
 class InvalidTaskTimeRangeError(BusinessError):
     """Grupa błędów związanych z harmonogramem i czasem trwania"""
 
