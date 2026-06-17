@@ -2,6 +2,7 @@ import pytest
 from tests import BusinessError, InvalidTaskTimeRangeError, TaskOverlapError, Task
 from datetime import datetime
 
+
 class TestInvalidTaskTimeRangeError:
     """Testy przeprowadzanych działań na czasie"""
 
@@ -86,28 +87,27 @@ class TestInvalidTaskTimeRangeError:
         assert result["http_status"] == 409
         assert result["message"] == TaskOverlapError.default_message
         assert result["details"] == details
-#TODO dopisać test sprawdzający overlap Tasków
+
     def test_TaskOverlapError_raise(self):
         """Sprawdzenie, czy TaskOverlapError zostanie rzucony przy nakładaniu się zakresów czasu"""
         task1 = Task(
             task_id="task1",
-            task_start=datetime(2026,1,1,10,0),
-            task_stop=datetime(2026,1,1,12,0)
+            task_start=datetime(2026, 1, 1, 10, 0),
+            task_stop=datetime(2026, 1, 1, 12, 0)
         )
-        
+
         task2 = Task(
             task_id="task2",
-            task_start=datetime(2026,1,1,11,0),
-            task_stop=datetime(2026,1,1,13,0)
+            task_start=datetime(2026, 1, 1, 11, 0),
+            task_stop=datetime(2026, 1, 1, 13, 0)
         )
-        
-        def check_overlap(t1:Task, t2:Task) -> None:
+
+        def check_overlap(t1: Task, t2: Task) -> None:
             if t1.task_start < t2.task_stop and t2.task_start < t2.task_stop:
                 raise TaskOverlapError(
-                    details=
-                        {"conflicting_task_id": t2.task_id,
-                        "range": f"{t2.task_start.strftime('%H:%M')} - {t2.task_stop.strftime('%H:%M')}"
-                        }
+                    details={"conflicting_task_id": t2.task_id,
+                             "range": f"{t2.task_start.strftime('%H:%M')} - {t2.task_stop.strftime('%H:%M')}"
+                             }
                 )
             with pytest.raises(TaskOverlapError):
-                check_overlap(task1,task2) 
+                check_overlap(task1, task2)
