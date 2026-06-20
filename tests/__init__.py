@@ -4,4 +4,4 @@ from exceptions.handler_error import BusinessError
 from core.time.task_duration import get_task_time_duration, get_tasks_time_one_day, get_tasks_time_one_month
 from models.task import Task
 from exceptions.time_errors import InvalidTaskTimeRangeError, TaskOverlapError
-from exceptions.finance_errors import InvalidExchangeRateError
+from exceptions.finance_errors import InvalidExchangeRateError, InvalidHourdlyRateError
