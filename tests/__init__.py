@@ -6,5 +6,5 @@ from models.task import Task
 from exceptions.time_errors import InvalidTaskTimeRangeError, TaskOverlapError
 from exceptions.finance_errors import InvalidExchangeRateError, InvalidHourdlyRateError
 from exceptions.authorization_errors import  TaskLockedError
-from exceptions.reference_errors import  ProjectInUseError
+from exceptions.reference_errors import  ProjectInUseError, EntityNotFoundError
 from models.project import project
