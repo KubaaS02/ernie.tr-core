@@ -9,3 +9,4 @@ from exceptions.authorization_errors import TaskLockedError
 from exceptions.reference_errors import ProjectInUseError, EntityNotFoundError
 from models.project import project
 from exceptions.data_errors import MissingCalculationDataError
+from exceptions.integration_errors import NbpApiUnavailableError
