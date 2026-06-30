@@ -10,4 +10,4 @@ class MissingCalculationDataError(BusinessError):
     error_id: Optional[str] = "ERR-DATA-01"
     error_code: Optional[str] = "missing_calculation_data"
     http_status: Optional[int] = 400
-    default_message: Optional[str] = "Brak danych potrzebnych do obliczenia kosztów"
+    default_message: Optional[str] = "Lack of data needed to calculate costs"
