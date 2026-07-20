@@ -2,11 +2,14 @@ from datetime import datetime, timedelta, date
 from dataclasses import dataclass
 from typing import Optional, Literal
 from core.time.task_duration import get_task_time_duration
+from exceptions.time_errors import InvalidTaskTimeRangeError
+
+
 @dataclass
 class Task:
     """
     Model reprezentujący pojedyncze zadanie (task).
-    
+
     Attributes:
         task_id: Unikatowy identyfikator taska
         task_start: Data i czas rozpoczęcia pracy (format: YYYY-MM-DD HH:MM lub HH:MM:SS)
@@ -30,7 +33,7 @@ class Task:
         is_locked: Informacja, czy task jest zablokowany, czy nie
         diff: Różnica pieniężna taska
     """
-    
+
     task_start: datetime
     task_stop: datetime
     task_id: str
@@ -51,14 +54,19 @@ class Task:
     updated_at: Optional[datetime] = None
     is_locked: Optional[bool] = None
     diff: float | None = None
+
     def __post_init__(self) -> None:
         """Walidacja danych po inicjalizacji"""
         if self.task_start > self.task_stop:
-            raise ValueError(
-                f"task_start ({self.task_start}) nie może być później niż task_stop ({self.task_stop})"
+            raise InvalidTaskTimeRangeError(
+                details={
+                    "task_start": self.task_start,
+                    "task_stop": self.task_stop
+                }
             )
-        self.duration_min = get_task_time_duration(self.task_start, self.task_stop)
-    
+        self.duration_min = get_task_time_duration(
+            self.task_start, self.task_stop)
+
     def __repr__(self) -> str:
         return (
             f"Task(id={self.task_id}, start={self.task_start}, "
