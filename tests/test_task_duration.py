@@ -3,6 +3,7 @@ from datetime import datetime
 from tests import get_task_time_duration, get_tasks_time_one_day, get_tasks_time_one_month
 from tests import Task
 from typing import Tuple
+from exceptions.time_errors import InvalidTaskTimeRangeError
 class TestCalculateTaskDuration:
     """Testy obliczania czasu trwania tasku"""
     
@@ -139,7 +140,7 @@ class TestCalculateTaskDuration:
     
     def test_start_after_stop_raises_error(self) -> None:
         """Test gdy task_start > task_stop (powinien rzucić błąd)"""
-        with pytest.raises(ValueError, match="task_start"):
+        with pytest.raises(InvalidTaskTimeRangeError):
             get_task_time_duration(
                 "2025-11-01 20:48",
                 "2025-11-01 19:44"
@@ -147,6 +148,7 @@ class TestCalculateTaskDuration:
     
     def test_invalid_format_raises_error(self) -> None:
         """Test nieprawidłowego formatu"""
+        #! TODO: zmienić w przyszłości ValueError na własny wyjątek błędu
         with pytest.raises(ValueError):
             get_task_time_duration(
                 "01-11-2025 19:44",  # Zły format
@@ -155,6 +157,7 @@ class TestCalculateTaskDuration:
     
     def test_invalid_type_raises_error(self) -> None:
         """Test nieprawidłowego typu"""
+        #! TODO: zmienić w przyszłości TypeError na własny wyjątek błędu
         with pytest.raises(TypeError):
             get_task_time_duration(
                 12345,  # Liczba zamiast str/datetime
