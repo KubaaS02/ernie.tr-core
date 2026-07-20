@@ -1,6 +1,7 @@
 from datetime import datetime, time, date
 from typing import Union, List, Tuple
 from src.core.time.helpers.time import month_days
+from exceptions import InvalidTaskTimeRangeError
 # from models.task import Task
 
 
@@ -37,7 +38,7 @@ def _parse_datetime(dt_input: Union[str, datetime]) -> datetime:
     """
     if isinstance(dt_input, datetime):
         return dt_input
-
+#! TODO: Zmienić ValueError i TypeError na własny wyjątek błędu w przyszłości
     if isinstance(dt_input, str):
         try:
             return datetime.strptime(dt_input, "%Y-%m-%d %H:%M:%S")
@@ -78,8 +79,7 @@ def get_task_time_duration(
         Czas trwania tasku w minutach (minimum 1)
 
     Raises:
-        ValueError: Jeśli task_start > task_stop
-        TypeError: Jeśli format wejścia jest nieprawidłowy
+        InvalidTaskTimeRangeError: Task_start > Task_stop
 
     Examples:
         >>> # Zwykły task - 64 minuty
@@ -107,8 +107,11 @@ def get_task_time_duration(
     stop = _parse_datetime(task_stop)
 
     if start > stop:
-        raise ValueError(
-            f"task_start ({start}) nie może być później niż task_stop ({stop})"
+        raise InvalidTaskTimeRangeError(
+            details={
+                "task_start": start,
+                "task_stop": stop
+            }
         )
 
     duration_raw = (stop - start).total_seconds() / 60
@@ -140,6 +143,7 @@ def get_converted_time_duration(duration_min: int) -> str:
         >>> time_conversion(64)
         01:04
     """
+    #! TODO: zmienić TypeError i ValueError na własny wyjątek błędu w przyszłości
     if not isinstance(duration_min, int):
         raise TypeError(
             f"{duration_min} musi być int a dostałem: {type(duration_min).__name__}"
@@ -183,6 +187,7 @@ def get_tasks_time_one_day(tasks: List, day: datetime) -> Tuple[int, str]:
 
 
 def get_tasks_time_one_month(tasks: List, month: datetime) -> Tuple[int, str]:
+    #! TODO: Dodać obłsugę wyjatku błędu
     """
     Obliczanie łącznego czasu pracy dla danego miesiąca
 
