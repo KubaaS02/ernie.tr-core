@@ -63,6 +63,7 @@ def get_approx_cost_from_pln_to_euro(task: Task) -> float:
     """
     rate_euro_pln = task.exchange_rate_eur
     if task.cost_approx_pln is None:
+        #! TODO: Zmienić w przyszłości ValueError na własny wyjątek błędu
         raise ValueError("Brak cost_approx_pln")
 
     if rate_euro_pln <= 0:
