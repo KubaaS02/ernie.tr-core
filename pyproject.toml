@@ -19,6 +19,7 @@ build-backend = "setuptools.build_meta"
 models = ["py.typed"]
 core = ["py.typed"]
 exceptions = ["py.typed"]
+salary = ["py.typed"]
 
 [tool.mypy]
 python_version = "3.14"
