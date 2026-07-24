@@ -3,6 +3,7 @@ import requests
 from exceptions.finance_errors import InvalidHourdlyRateError, InvalidExchangeRateError
 from datetime import datetime
 
+
 def get_approx_cost_pln(task: Task, rate_pln_per_h: float) -> float:
     """
     Algorytm oblicza przybliżony koszt tasku w PLN na podstawie czasu pracy i stawki godzinowej.
@@ -117,22 +118,23 @@ def get_nbp_euro_rate(task: Task) -> float:
 
     return exchange_rate
 
-def get_actual_cost_pln(task:Task, cost_actual_pln_input:float, payment_date:datetime) -> float:
+
+def get_actual_cost_pln(task: Task, cost_actual_pln_input: float, payment_date: datetime) -> float:
     """
     Algorytm oblicza faktyczny koszt taska w PLN.
-    
+
     Args:
         task_id: Identyfikator taska
         cost_actual_pln_input: kwota podana przez użytkownika
         payment_date: data kiedy otrzymano płatność
-    
+
     Returns:
         cost_actual_pln: Obliczony faktyczny koszt w PLN (float)
-    
+
     Raises:
         ValueError: cost_actual_pln_input musi być > 0
         ValueError: pole task.cost_approx_pln musi być uzupełnione
-    
+
     Example:
         >>> Task(
         ... task_start=datetime(2025, 11, 1, 19, 44),
@@ -149,14 +151,14 @@ def get_actual_cost_pln(task:Task, cost_actual_pln_input:float, payment_date:dat
             f"cost_actual_pln_input: {cost_actual_pln_input} must be positive"
         )
     if task.cost_approx_pln is None:
-        #TODO: zapytać, czy tutaj użyć ValueError czy MissingCalculationDataError
+        # TODO: zapytać, czy tutaj użyć ValueError czy MissingCalculationDataError
         raise ValueError(
             f"Task {task.task_id} cost_approx_pln has not been set"
         )
-    
+
     task.cost_actual_pln = round(cost_actual_pln_input, 2)
     task.status = "Zapłacone"
     task.payment_date = payment_date
-    task.diff = round(task.cost_actual_pln - task.cost_approx_pln,2)
-    
+    task.diff = round(task.cost_actual_pln - task.cost_approx_pln, 2)
+
     return task.cost_actual_pln
