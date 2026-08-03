@@ -31,7 +31,7 @@ def get_approx_cost_pln(task: Task, rate_pln_per_h: float) -> float:
     """
     rate = task.rate_pln_per_h if task.rate_pln_per_h is not None else rate_pln_per_h
 
-    if rate <= 0:
+    if rate <= 0.0:
         raise InvalidHourdlyRateError(
             details={
                 "hourly_rate": rate
@@ -146,12 +146,11 @@ def get_actual_cost_pln(task: Task, cost_actual_pln_input: float, payment_date: 
         >>> result = get_actual_cost_pln(task, 102.00, datetime(2025, 11, 20))
         (102.0)
     """
-    if cost_actual_pln_input <= 0:
+    if cost_actual_pln_input <= 0.0:
         raise ValueError(
             f"cost_actual_pln_input: {cost_actual_pln_input} must be positive"
         )
     if task.cost_approx_pln is None:
-        # TODO: zapytać, czy tutaj użyć ValueError czy MissingCalculationDataError
         raise ValueError(
             f"Task {task.task_id} cost_approx_pln has not been set"
         )
@@ -162,3 +161,35 @@ def get_actual_cost_pln(task: Task, cost_actual_pln_input: float, payment_date: 
     task.diff = round(task.cost_actual_pln - task.cost_approx_pln, 2)
 
     return task.cost_actual_pln
+
+
+def get_actual_cost_euro_from_pln(cost_actual_pln: float, rate_eur_pln: float) -> float:
+    """Algorytm przelicza koszt faktyczny z PLN na EUR na podstawie kursu z tasku.
+
+    Args:
+        cost_actual_pln: Aktualny koszt taska PLN
+        rate_eur_pln: Kurs przewalutowania z PLN na EUR
+
+    Returns:
+        cost_actual_eur: Obliczony faktyczny koszt tasku w EUR (float)
+
+    Raises:
+        ValueError: Gdy cost_actual_pln <=0
+        InvalidExchangeRateError: Gdy rate_eur_pln <=0
+
+    Example:
+        >>> get_actual_cost_euro_from_pln(cost_actual_pln: 100.00, rate_eur_pln: 4.22)
+        (23.7)
+    """
+
+    if cost_actual_pln <= 0.0:
+        raise ValueError(
+            f"cost_actual_pln: {cost_actual_pln} must be positive"
+        )
+    if rate_eur_pln <= 0.0:
+        raise InvalidExchangeRateError(
+            details={"rate_eur_pln": rate_eur_pln}
+        )
+    cost_actual_eur_raw = cost_actual_pln / rate_eur_pln
+    cost_actual_eur = round(cost_actual_eur_raw, 2)
+    return cost_actual_eur
