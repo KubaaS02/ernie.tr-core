@@ -1,6 +1,6 @@
 import pytest
 from tests import Task
-from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro, get_actual_cost_pln
+from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro, get_actual_cost_pln, get_actual_cost_euro_from_pln
 from datetime import datetime
 from tests import InvalidExchangeRateError, InvalidHourdlyRateError, MissingCalculationDataError
 
@@ -144,3 +144,31 @@ class TestGetActualCostPln:
         task = _make_task(cost_approx_pln=None)
         with pytest.raises(ValueError):
             get_actual_cost_pln(task, 102.00, datetime(2025, 11, 20))
+
+
+class TestGetActualCostEuroFromPln:
+    """Testy przeliczania kosztu faktyczne z PLN na EUR (FR-421-10)"""
+
+    def test_get_acutal_cost_euro_from_pln(self) -> None:
+        """Test, czy funkcja działa poprawnie dla danych 102.00 PLN / 4.22 = 24.17 EUR"""
+        assert get_actual_cost_euro_from_pln(102.00, 4.22) == 24.17
+
+    def test_exact_division(self) -> None:
+        """Test dzielenia bez reszty"""
+        assert get_actual_cost_euro_from_pln(42.20, 4.22) == 10.00
+
+    def test_zero_rate(self) -> None:
+        """Test przechwycenia błędu, gdy rate_eur_pln = 0"""
+        with pytest.raises(InvalidExchangeRateError):
+            get_actual_cost_euro_from_pln(102.00, 0.00)
+
+    def test_negative_rate(self) -> None:
+        """Test przechwycenia błędu, gdy cost_actual_pln < 0"""
+        with pytest.raises(InvalidExchangeRateError):
+            # TODO: Czy trzeba zrobić wyjątek dedykowany, gdy acutal_cost < 0
+            get_actual_cost_euro_from_pln(102.00, -4.22)
+
+    def test_string_rate(self) -> None:
+        """Test, gdy wartość rate_eur_pln jest string zamiast float"""
+        with pytest.raises(TypeError):
+            get_actual_cost_euro_from_pln(102.00, "4.22")
