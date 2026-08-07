@@ -41,6 +41,7 @@ class Task:
     exchange_rate_eur: float = 0.0
     duration_min: int = 1
     status: Literal["Zapłacone", "Oczekuje", "W trakcie"] = "Oczekuje"
+    diff_status: Literal["Positive", "Negative", "Zero", "Pending"] = "Pending"
     payment_date: Optional[datetime] = None
     rate_pln_per_h: Optional[float] = None
     description: Optional[str] = None
