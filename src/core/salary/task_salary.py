@@ -1,7 +1,9 @@
 from models.task import Task
 import requests
 from exceptions.finance_errors import InvalidHourdlyRateError, InvalidExchangeRateError
+from exceptions.data_errors import MissingCalculationDataError
 from datetime import datetime
+from typing import Literal
 
 
 def get_approx_cost_pln(task: Task, rate_pln_per_h: float) -> float:
@@ -193,3 +195,77 @@ def get_actual_cost_euro_from_pln(cost_actual_pln: float, rate_eur_pln: float) -
     cost_actual_eur_raw = cost_actual_pln / rate_eur_pln
     cost_actual_eur = round(cost_actual_eur_raw, 2)
     return cost_actual_eur
+
+
+def get_actual_approx_cost_diff(task: Task) -> float | None:
+    """Algorytm oblicza różnicę między kosztem faktycznym a przybliżonym (w PLN).
+
+    Ustawia na tasku pola diff oraz diff_status.
+
+    Args:
+        task: Pojedyńczy task (Task)
+
+    Returns:
+        task.diff: Różnica między faktycznym a szacowanym kosztem taska (float),
+            zaokrąglona do 2 miejsc po przecinku. Wartość dodatnia oznacza
+            nadpłatę, ujemna niedopłatę.
+            None, gdy task nie ma jeszcze faktycznej płatności.
+
+    Raises:
+        MissingCalculationDataError: task.cost_approx_pln jest puste
+
+    Example:
+        # Nadpłata
+        >>> task = Task(
+        ... task_start=datetime(2025, 11, 1, 19, 44),
+        ... task_stop=datetime(2025, 11, 1, 20, 48),
+        ... task_id="task_dev_01",
+        ... comment="Development",
+        ... cost_approx_pln=128.53,
+        ... cost_actual_pln=130.00
+        ... )
+        >>> get_actual_approx_cost_diff(task)
+        (1.47)
+
+        # Niedopłata
+        >>> task = Task(
+                ... task_start=datetime(2025, 11, 1, 19, 44),
+                ... task_stop=datetime(2025, 11, 1, 20, 48),
+                ... task_id="task_dev_01",
+                ... comment="Development",
+                ... cost_approx_pln=128.53,
+                ... cost_actual_pln=120.00
+                ... )
+                >>> get_actual_approx_cost_diff(task)
+                (-8.53)
+
+        # Brak płatności
+        >>> task = Task(
+        ... task_start=datetime(2025, 11, 1, 19, 44),
+        ... task_stop=datetime(2025, 11, 1, 20, 48),
+        ... task_id="task_dev_01",
+        ... cost_approx_pln=128.53
+        ... )
+        >>> get_actual_approx_cost_diff(task)
+        (None)
+    """
+    if task.cost_approx_pln is None:
+        raise MissingCalculationDataError(
+            details={
+                "task_id": task.task_id,
+                "missing_field": "cost_approx_pln"
+            }
+        )
+    if task.cost_actual_pln is None:
+        return None
+
+    task.diff = round(task.cost_actual_pln - task.cost_approx_pln, 2)
+
+    if task.diff > 0.0:
+        task.diff_status = "Positive"
+    elif task.diff < 0.0:
+        task.diff_status = "Negative"
+    else:
+        task.diff_status = "Zero"
+
+    return task.diff
