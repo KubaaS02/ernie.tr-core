@@ -1,6 +1,6 @@
 import pytest
 from tests import Task
-from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro, get_actual_cost_pln, get_actual_cost_euro_from_pln
+from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro, get_actual_cost_pln, get_actual_cost_euro_from_pln, get_actual_approx_cost_diff
 from datetime import datetime
 from tests import InvalidExchangeRateError, InvalidHourdlyRateError, MissingCalculationDataError
 
@@ -53,7 +53,7 @@ class TestCalculateTaskSalary:
 # ========== TESTY get_actual_cost_pln() ==========
 
 
-def _make_task(cost_approx_pln: float | None = 128.53) -> Task:
+def _make_task(cost_approx_pln: float | None = 128.53, cost_actual_pln: float | None = None) -> Task:
     """Tworzy task testowy z ustawionym kosztem przybliżonym"""
     return Task(
         task_start=datetime(2025, 11, 1, 19, 44),
@@ -61,6 +61,7 @@ def _make_task(cost_approx_pln: float | None = 128.53) -> Task:
         task_id="task_dev_01",
         comment="Development",
         cost_approx_pln=cost_approx_pln,
+        cost_actual_pln=cost_actual_pln
     )
 
 
@@ -172,3 +173,109 @@ class TestGetActualCostEuroFromPln:
         """Test, gdy wartość rate_eur_pln jest string zamiast float"""
         with pytest.raises(TypeError):
             get_actual_cost_euro_from_pln(102.00, "4.22")
+
+
+class TestGetActualApproxCostDiff:
+    """Testy obliczenia rozbieżności (FR-421-11)"""
+
+    def test_spec_example_underpayment(self) -> None:
+        """Test, czy funkcja działa poprawnie - approx 128.53, wpłata 102.00, diff -26.53"""
+        task = _make_task(cost_approx_pln=128.53, cost_actual_pln=102.00)
+        result: float | None = get_actual_approx_cost_diff(task)
+        assert result == -26.53
+
+    def test_spec_example_underpayment_status(self) -> None:
+        """Test statusu dla niedopłaty - Negative"""
+        task = _make_task(cost_approx_pln=128.53, cost_actual_pln=102.00)
+        get_actual_approx_cost_diff(task)
+        assert task.diff_status == "Negative"
+
+    def test_spec_example_overpayment(self) -> None:
+        """Test, czy funkcja działa poprawnie - approx 100.00, wpłata 110.50, diff 10.50"""
+        task = _make_task(cost_approx_pln=100.00, cost_actual_pln=110.50)
+        result: float | None = get_actual_approx_cost_diff(task)
+        assert result == 10.50
+
+    def test_spec_example_overpayment_status(self) -> None:
+        """Test statusu dla nadpłaty - Positive"""
+        task = _make_task(cost_approx_pln=100.00, cost_actual_pln=110.50)
+        get_actual_approx_cost_diff(task)
+        assert task.diff_status == "Positive"
+
+    def test_spec_example_no_payment(self) -> None:
+        """Test, czy funkcja działa poprawnie - brak faktycznej płatności, diff None"""
+        task = _make_task(cost_approx_pln=128.53, cost_actual_pln=None)
+        result: float | None = get_actual_approx_cost_diff(task)
+        assert result is None
+
+    def test_spec_example_no_payment_status(self) -> None:
+        """Test statusu przy braku płatności - Pending (domyślna wartość modelu)"""
+        task = _make_task(cost_approx_pln=128.53, cost_actual_pln=None)
+        get_actual_approx_cost_diff(task)
+        assert task.diff_status == "Pending"
+
+    def test_exact_payment_returns_zero(self) -> None:
+        """Test płatności równej przybliżeniu - różnica zero"""
+        task = _make_task(cost_approx_pln=128.53, cost_actual_pln=128.53)
+        result: float | None = get_actual_approx_cost_diff(task)
+        assert result == 0.0
+
+    def test_exact_payment_status_zero(self) -> None:
+        """Test statusu przy płatności równej przybliżeniu - Zero"""
+        task = _make_task(cost_approx_pln=128.53, cost_actual_pln=128.53)
+        get_actual_approx_cost_diff(task)
+        assert task.diff_status == "Zero"
+
+    def test_sets_diff_on_task(self) -> None:
+        """Test zapisu rozbieżności na polu task.diff"""
+        task = _make_task(cost_approx_pln=128.53, cost_actual_pln=102.00)
+        get_actual_approx_cost_diff(task)
+        assert task.diff == -26.53
+
+    def test_return_matches_task_field(self) -> None:
+        """Test zgodności wartości zwróconej z polem tasku"""
+        task = _make_task(cost_approx_pln=128.53, cost_actual_pln=102.00)
+        result: float | None = get_actual_approx_cost_diff(task)
+        assert result == task.diff
+
+    def test_repeated_call_is_idempotent(self) -> None:
+        """Test, czy powtórne wywołanie daje ten sam wynik i status"""
+        task = _make_task(cost_approx_pln=128.53, cost_actual_pln=102.00)
+        first: float | None = get_actual_approx_cost_diff(task)
+        second: float | None = get_actual_approx_cost_diff(task)
+        assert first == second
+        assert task.diff_status == "Negative"
+
+    def test_zero_approx_cost_is_allowed(self) -> None:
+        """Test, gdy koszt przybliżony wynosi 0 - cała wpłata jest nadpłatą"""
+        task = _make_task(cost_approx_pln=0.0, cost_actual_pln=50.00)
+        result: float | None = get_actual_approx_cost_diff(task)
+        assert result == 50.00
+        assert task.diff_status == "Positive"
+
+    def test_missing_approx_cost_raises_error(self) -> None:
+        """Test gdy task nie ma ustawionego cost_approx_pln"""
+        task = _make_task(cost_approx_pln=None, cost_actual_pln=102.00)
+        with pytest.raises(MissingCalculationDataError):
+            get_actual_approx_cost_diff(task)
+
+    def test_error_details_contain_context(self) -> None:
+        """Test zawartości details w wyjątku - task_id i nazwa brakującego pola"""
+        task = _make_task(cost_approx_pln=None)
+        with pytest.raises(MissingCalculationDataError) as exc_info:
+            get_actual_approx_cost_diff(task)
+        assert exc_info.value.details["task_id"] == "task_dev_01"
+        assert exc_info.value.details["missing_field"] == "cost_approx_pln"
+
+    def test_error_does_not_mutate_task(self) -> None:
+        """Test, że błąd walidacji nie zmienia stanu tasku"""
+        task = _make_task(cost_approx_pln=None, cost_actual_pln=102.00)
+        with pytest.raises(MissingCalculationDataError):
+            get_actual_approx_cost_diff(task)
+        assert task.diff is None
+        assert task.diff_status == "Pending"
+
+    def test_no_payment_does_not_raise(self) -> None:
+        """Test, że brak płatności to poprawny stan, a nie błąd"""
+        task = _make_task(cost_approx_pln=128.53, cost_actual_pln=None)
+        assert get_actual_approx_cost_diff(task) is None
