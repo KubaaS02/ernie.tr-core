@@ -20,6 +20,7 @@ models = ["py.typed"]
 core = ["py.typed"]
 exceptions = ["py.typed"]
 salary = ["py.typed"]
+helper = ["py.typed"]
 
 [tool.mypy]
 python_version = "3.14"
@@ -29,6 +30,11 @@ warn_unused_ignores = true
 
 [tools.poethepoet.tasks]
 test = "pytest tests"
+
+[dependency-groups]
+dev = [
+    "types-requests>=2.33.0.20260712",
+]
 
 #[mypy]
 #ignore_missing_imports = True
