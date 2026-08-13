@@ -3,7 +3,8 @@ import requests
 from exceptions.finance_errors import InvalidHourdlyRateError, InvalidExchangeRateError
 from exceptions.data_errors import MissingCalculationDataError
 from datetime import datetime
-from typing import Literal
+from typing import Literal, List, Tuple, Optional
+from helper.types import DiffStatus
 
 
 def get_approx_cost_pln(task: Task, rate_pln_per_h: float) -> float:
@@ -269,3 +270,71 @@ def get_actual_approx_cost_diff(task: Task) -> float | None:
         task.diff_status = "Zero"
 
     return task.diff
+
+
+def get_diff_day(tasks_day: List[Task]) -> Tuple[Optional[float], DiffStatus]:
+    """
+    Algorytm oblicza łączną rozbieżność dla danego dnia na podstawie rozbieżności
+    poszczególnych tasków.
+
+    Sumowane są wyłącznie taski z faktyczną płatnością, tzn. takie, dla których
+    pole diff zostało już wyliczone. Taski bez płatności są pomijane. Jeżeli żaden
+    task w dniu nie ma płatności, dzień pozostaje w stanie oczekiwania.
+
+    Args:
+        tasks_day: Lista tasków przypisanych do jednego dnia
+
+    Returns:
+        Krotka (diff_day, diff_day_status):
+            diff_day: Łączna rozbieżność dnia w PLN (float) lub None, gdy brak płatności
+            diff_day_status: Status rozbieżności dnia ("Pending", "Positive", "Negative", "Zero")
+
+    Examples:
+        >>> # Dzień z dwoma opłaconymi taskami i jednym bez płatności
+        >>> tasks = [
+        ...     Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),
+        ...          task_stop=datetime(2025, 11, 1, 11, 0), diff=-26.53),
+        ...     Task(task_id="2", task_start=datetime(2025, 11, 1, 12, 0),
+        ...          task_stop=datetime(2025, 11, 1, 13, 0), diff=5.00),
+        ...     Task(task_id="3", task_start=datetime(2025, 11, 1, 14, 0),
+        ...          task_stop=datetime(2025, 11, 1, 15, 0)),
+        ... ]
+        >>> get_diff_day(tasks)
+        (-21.53, 'Negative')
+
+        >>> # Rozbieżności znoszą się wzajemnie
+        >>> tasks = [
+        ...     Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),
+        ...          task_stop=datetime(2025, 11, 1, 11, 0), diff=-26.53),
+        ...     Task(task_id="2", task_start=datetime(2025, 11, 1, 12, 0),
+        ...          task_stop=datetime(2025, 11, 1, 13, 0), diff=26.53),
+        ... ]
+        >>> get_diff_day(tasks)
+        (0.0, 'Zero')
+
+        >>> # Żaden task nie ma jeszcze płatności
+        >>> get_diff_day([Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),
+        ...                    task_stop=datetime(2025, 11, 1, 11, 0))])
+        (None, 'Pending')
+    """
+    paid_diffs: List[float] = []
+    diff_day_status: DiffStatus = "Pending"
+    for task in tasks_day:
+        if task.diff is None:
+            continue
+        paid_diffs.append(task.diff)
+
+    if not paid_diffs:
+        return None, "Pending"
+
+    diff_day = round(sum(paid_diffs), 2)
+
+    if diff_day > 0:
+        diff_day_status = "Positive"
+    elif diff_day < 0:
+        diff_day_status = "Negative"
+    elif diff_day == 0:
+        diff_day_status = "Zero"
+        diff_day = 0.0
+
+    return diff_day, diff_day_status
