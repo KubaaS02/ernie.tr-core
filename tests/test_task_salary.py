@@ -1,6 +1,6 @@
 import pytest
 from tests import Task
-from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro, get_actual_cost_pln, get_actual_cost_euro_from_pln, get_actual_approx_cost_diff
+from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro, get_actual_cost_pln, get_actual_cost_euro_from_pln, get_actual_approx_cost_diff, get_diff_day
 from datetime import datetime
 from tests import InvalidExchangeRateError, InvalidHourdlyRateError, MissingCalculationDataError
 
@@ -279,3 +279,73 @@ class TestGetActualApproxCostDiff:
         """Test, że brak płatności to poprawny stan, a nie błąd"""
         task = _make_task(cost_approx_pln=128.53, cost_actual_pln=None)
         assert get_actual_approx_cost_diff(task) is None
+
+
+def _make_task_with_diff(task_id: str = "1", diff: float | None = None) -> Task:
+    """Tworzy task testowy z ustawioną (lub nie) rozbieżnością"""
+    return Task(
+        task_start=datetime(2025, 11, 1, 9, 0),
+        task_stop=datetime(2025, 11, 1, 11, 0),
+        task_id=task_id,
+        diff=diff,
+    )
+
+
+class TestGetDiffDay:
+    """Testy sumowania rozbieżności dziennych (FR-421-12)"""
+
+    def test_example(self) -> None:
+        """Test przykładu (-26.53) + 5.00 + (task bez płatności) = -21.53"""
+        tasks = [
+            _make_task_with_diff("1", -26.53),
+            _make_task_with_diff("2", 5.00),
+            _make_task_with_diff("3", None),
+        ]
+        assert get_diff_day(tasks) == (-21.53, "Negative")
+
+    def test_all_tasks_unpaid(self) -> None:
+        """Test gdy żaden task nie ma płatności - dzień oczekujący"""
+        tasks = [_make_task_with_diff("1"), _make_task_with_diff("2")]
+        assert get_diff_day(tasks) == (None, "Pending")
+
+    def test_empty_list(self) -> None:
+        """Test pustej listy tasków - dzień oczekujący"""
+        assert get_diff_day([]) == (None, "Pending")
+
+    def test_overpayment_positive_status(self) -> None:
+        """Test nadpłaty - status dodatni"""
+        tasks = [_make_task_with_diff(
+            "1", 10.00), _make_task_with_diff("2", 5.50)]
+        assert get_diff_day(tasks) == (15.50, "Positive")
+
+    def test_single_paid_among_unpaid(self) -> None:
+        """Test gdy tylko jeden task z całego dnia ma płatność"""
+        tasks = [
+            _make_task_with_diff("1", None),
+            _make_task_with_diff("2", -12.30),
+            _make_task_with_diff("3", None),
+        ]
+        assert get_diff_day(tasks) == (-12.30, "Negative")
+
+    def test_diffs_cancel_out_zero_status(self) -> None:
+        """Test gdy rozbieżności się znoszą - status Zero, nie Pending"""
+        tasks = [_make_task_with_diff(
+            "1", -26.53), _make_task_with_diff("2", 26.53)]
+        assert get_diff_day(tasks) == (0.0, "Zero")
+
+    def test_single_zero_diff_is_not_pending(self) -> None:
+        """Test że diff == 0 to płatność, a nie brak płatności"""
+        assert get_diff_day([_make_task_with_diff("1", 0.0)]) == (0.0, "Zero")
+
+    def test_result_is_not_negative_zero(self) -> None:
+        """Test że wynik nie jest -0.0"""
+        diff_day, _ = get_diff_day([_make_task_with_diff("1", -0.001)])
+        assert str(diff_day) == "0.0"
+
+    def test_does_not_mutate_input_tasks(self) -> None:
+        """Test że funkcja nie zmienia stanu przekazanych tasków"""
+        tasks = [_make_task_with_diff(
+            "1", -26.53), _make_task_with_diff("2", 5.00)]
+        get_diff_day(tasks)
+        assert tasks[0].diff == -26.53
+        assert tasks[1].diff == 5.00
