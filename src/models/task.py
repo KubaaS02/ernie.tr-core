@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Optional, Literal
 from core.time.task_duration import get_task_time_duration
 from exceptions.time_errors import InvalidTaskTimeRangeError
-
+from helper.types import DiffStatus
 
 @dataclass
 class Task:
@@ -41,7 +41,7 @@ class Task:
     exchange_rate_eur: float = 0.0
     duration_min: int = 1
     status: Literal["Zapłacone", "Oczekuje", "W trakcie"] = "Oczekuje"
-    diff_status: Literal["Positive", "Negative", "Zero", "Pending"] = "Pending"
+    diff_status: DiffStatus = "Pending"
     payment_date: Optional[datetime] = None
     rate_pln_per_h: Optional[float] = None
     description: Optional[str] = None
