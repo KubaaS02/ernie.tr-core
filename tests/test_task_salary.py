@@ -1,7 +1,7 @@
 import pytest
-from tests import Task
-from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro, get_actual_cost_pln, get_actual_cost_euro_from_pln, get_actual_approx_cost_diff, get_diff_day
-from datetime import datetime
+from tests import Task, day
+from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro, get_actual_cost_pln, get_actual_cost_euro_from_pln, get_actual_approx_cost_diff, get_diff_day, get_diff_month
+from datetime import datetime, date
 from tests import InvalidExchangeRateError, InvalidHourdlyRateError, MissingCalculationDataError
 
 
@@ -349,3 +349,102 @@ class TestGetDiffDay:
         get_diff_day(tasks)
         assert tasks[0].diff == -26.53
         assert tasks[1].diff == 5.00
+
+
+def _make_day_with_tasks(day_id: str = "2025-11-01", tasks: list[Task] | None = None) -> day:
+    """Tworzy dzień testowy z podaną listą tasków"""
+    return day(
+        day_id=day_id,
+        user_id="user_01",
+        date=date(2025, 11, 1),
+        tasks=tasks if tasks is not None else [],
+        total_duration_min=0,
+        total_duration_hm="00:00",
+        cost_approx_day_pln=0.0,
+        cost_approx_day_eur=0.0,
+        cost_actual_day_pln=0.0,
+        cost_actual_day_eur=0.0,
+    )
+
+
+class TestGetDiffMonth:
+    """Testy sumowania rozbieżności miesięcznych (FR-421-13)"""
+
+    def test_example(self) -> None:
+        """Test przykładu (-21.53) + 10.00 + (dzień bez płatności) = -11.53"""
+        days = [
+            _make_day_with_tasks("2025-11-01", [
+                _make_task_with_diff("1", -26.53),
+                _make_task_with_diff("2", 5.00),
+            ]),
+            _make_day_with_tasks("2025-11-02", [
+                _make_task_with_diff("3", 10.00),
+            ]),
+            _make_day_with_tasks("2025-11-03", [
+                _make_task_with_diff("4", None),
+            ]),
+        ]
+        assert get_diff_month(days) == (-11.53, "Negative")
+
+    def test_empty_list(self) -> None:
+        """Test pustej listy dni - miesiąc oczekujący"""
+        assert get_diff_month([]) == (None, "Pending")
+
+    def test_all_days_unpaid(self) -> None:
+        """Test gdy żaden dzień nie ma płatności - miesiąc oczekujący"""
+        days = [
+            _make_day_with_tasks(
+                "2025-11-01", [_make_task_with_diff("1", None)]),
+            _make_day_with_tasks(
+                "2025-11-02", [_make_task_with_diff("2", None)]),
+        ]
+        assert get_diff_month(days) == (None, "Pending")
+
+    def test_overpayment_positive_status(self) -> None:
+        """Test nadpłaty w skali miesiąca - status dodatni"""
+        days = [
+            _make_day_with_tasks(
+                "2025-11-01", [_make_task_with_diff("1", 120.00)]),
+            _make_day_with_tasks(
+                "2025-11-02", [_make_task_with_diff("2", 35.50)]),
+        ]
+        assert get_diff_month(days) == (155.50, "Positive")
+
+    def test_single_paid_day_among_empty_days(self) -> None:
+        """Test gdy tylko jeden dzień z całego miesiąca ma płatność"""
+        days = [
+            _make_day_with_tasks(
+                "2025-11-01", [_make_task_with_diff("1", None)]),
+            _make_day_with_tasks(
+                "2025-11-02", [_make_task_with_diff("2", -12.30)]),
+            _make_day_with_tasks("2025-11-03"),
+        ]
+        assert get_diff_month(days) == (-12.30, "Negative")
+
+    def test_days_cancel_out_zero_status(self) -> None:
+        """Test gdy rozbieżności dni się znoszą - status Zero, nie Pending"""
+        days = [
+            _make_day_with_tasks(
+                "2025-11-01", [_make_task_with_diff("1", -21.53)]),
+            _make_day_with_tasks(
+                "2025-11-02", [_make_task_with_diff("2", 21.53)]),
+        ]
+        assert get_diff_month(days) == (0.0, "Zero")
+
+    def test_partially_paid_day_sums_only_paid_tasks(self) -> None:
+        """Test że dzień z częścią tasków opłaconych wnosi tylko sumę opłaconych"""
+        days = [
+            _make_day_with_tasks("2025-11-01", [
+                _make_task_with_diff("1", -26.53),
+                _make_task_with_diff("2", None),
+                _make_task_with_diff("3", 5.00),
+            ]),
+        ]
+        assert get_diff_month(days) == (-21.53, "Negative")
+
+    def test_result_is_not_negative_zero(self) -> None:
+        """Test że wynik nie jest -0.0"""
+        days = [_make_day_with_tasks(
+            "2025-11-01", [_make_task_with_diff("1", -0.001)])]
+        diff_month, _ = get_diff_month(days)
+        assert str(diff_month) == "0.0"
