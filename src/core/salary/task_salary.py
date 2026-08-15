@@ -1,4 +1,5 @@
 from models.task import Task
+from models.day import day
 import requests
 from exceptions.finance_errors import InvalidHourdlyRateError, InvalidExchangeRateError
 from exceptions.data_errors import MissingCalculationDataError
@@ -338,3 +339,44 @@ def get_diff_day(tasks_day: List[Task]) -> Tuple[Optional[float], DiffStatus]:
         diff_day = 0.0
 
     return diff_day, diff_day_status
+
+
+def get_diff_month(days_in_month: List[day]) -> Tuple[Optional[float], DiffStatus]:
+    """
+    Algorytm oblicza łączną rozbieżność dla danego miesiąca na podstawie
+    rozbieżności poszczególnych dni.
+
+    Sumowane są wyłącznie dni, dla których udało się wyliczyć rozbieżność, tzn. takie,
+    które mają co najmniej jeden task z faktyczną płatnością.
+    Jeżeli żaden dzień w miesiącu nie ma płatności, miesiąc pozostaje w stanie oczekiwania.
+
+    Args:
+        days_in_month: Lista dni wchodzących w skład jednego miesiąca
+
+    Returns:
+        Krotka (diff_month, diff_month_status):
+            diff_month: Łączna rozbieżność miesiąca w PLN (float) lub None, gdy brak płatności
+            diff_month_status: Status rozbieżności miesiąca ("Pending", "Positive", "Negative", "Zero")
+    """
+    paid_diffs_day: List[float] = []
+    diff_month_status: DiffStatus = "Pending"
+    for day_in_month in days_in_month:
+        diff_day, _ = get_diff_day(day_in_month.tasks)
+        if diff_day is None:
+            continue
+        paid_diffs_day.append(diff_day)
+
+    if not paid_diffs_day:
+        return None, "Pending"
+
+    diff_month = round(sum(paid_diffs_day), 2)
+
+    if diff_month > 0:
+        diff_month_status = "Positive"
+    elif diff_month < 0:
+        diff_month_status = "Negative"
+    elif diff_month == 0:
+        diff_month_status = "Zero"
+        diff_month = 0.0
+
+    return diff_month, diff_month_status
