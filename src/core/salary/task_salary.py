@@ -357,6 +357,27 @@ def get_diff_month(days_in_month: List[day]) -> Tuple[Optional[float], DiffStatu
         Krotka (diff_month, diff_month_status):
             diff_month: Łączna rozbieżność miesiąca w PLN (float) lub None, gdy brak płatności
             diff_month_status: Status rozbieżności miesiąca ("Pending", "Positive", "Negative", "Zero")
+
+    Examples:
+        >>> # Miesiąc z dwoma rozliczonymi dniami i jednym bez płatności
+        >>> # day_1: diff_day = -21.53, day_2: diff_day = 10.00, day_3: diff_day = None
+        >>> get_diff_month([day_1, day_2, day_3])
+        (-11.53, 'Negative')
+
+        >>> # Nadpłata w skali miesiąca
+        >>> # day_1: diff_day = 120.00, day_2: diff_day = 35.50
+        >>> get_diff_month([day_1, day_2])
+        (155.50, 'Positive')
+
+        >>> # Rozbieżności dni znoszą się wzajemnie
+        >>> # day_1: diff_day = -21.53, day_2: diff_day = 21.53
+        >>> get_diff_month([day_1, day_2])
+        (0.0, 'Zero')
+
+        >>> # Żaden dzień w miesiącu nie ma jeszcze płatności
+        >>> # day_1, day_2: wszystkie taski bez cost_actual_pln
+        >>> get_diff_month([day_1, day_2])
+        (None, 'Pending')
     """
     paid_diffs_day: List[float] = []
     diff_month_status: DiffStatus = "Pending"
