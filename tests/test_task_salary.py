@@ -1,6 +1,13 @@
 import pytest
 from tests import Task, day
-from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro, get_actual_cost_pln, get_actual_cost_euro_from_pln, get_actual_approx_cost_diff, get_diff_day, get_diff_month
+from tests import (
+    get_approx_cost_pln,
+    get_approx_cost_from_pln_to_euro,
+    get_actual_cost_pln,
+    get_actual_cost_euro_from_pln,
+    get_actual_approx_cost_diff,
+    get_diff_day, get_diff_month,
+    get_approx_day_cost)
 from datetime import datetime, date
 from tests import InvalidExchangeRateError, InvalidHourdlyRateError, MissingCalculationDataError
 
@@ -448,3 +455,134 @@ class TestGetDiffMonth:
             "2025-11-01", [_make_task_with_diff("1", -0.001)])]
         diff_month, _ = get_diff_month(days)
         assert str(diff_month) == "0.0"
+
+
+def _make_task_with_approx(
+    task_id: str = "1",
+    cost_approx_pln: float | None = 128.53,
+    cost_approx_eur: float | None = 30.47,
+) -> Task:
+    """Tworzy task testowy z ustawionymi (lub nie) kosztami przybliżonymi"""
+    return Task(
+        task_start=datetime(2025, 11, 1, 9, 0),
+        task_stop=datetime(2025, 11, 1, 11, 0),
+        task_id=task_id,
+        cost_approx_pln=cost_approx_pln,
+        cost_approx_eur=cost_approx_eur,
+    )
+
+
+class TestGetApproxDayCost:
+    """Testy sumowania kosztów przybliżonych dziennych (FR-421-14)"""
+
+    def test_example(self) -> None:
+        """Test przykładu ze specyfikacji: 128.53 + 237.50 = 366.03 PLN, 30.47 + 56.28 = 86.75 EUR"""
+        tasks = [
+            _make_task_with_approx("1", 128.53, 30.47),
+            _make_task_with_approx("2", 237.50, 56.28),
+        ]
+        assert get_approx_day_cost(tasks) == (366.03, 86.75)
+
+    def test_empty_list(self) -> None:
+        """Test pustej listy tasków - obie sumy zerowe"""
+        assert get_approx_day_cost([]) == (0.0, 0.0)
+
+    def test_single_task(self) -> None:
+        """Test dnia z jednym taskiem - suma równa kosztowi taska"""
+        tasks = [_make_task_with_approx("1", 128.53, 30.47)]
+        assert get_approx_day_cost(tasks) == (128.53, 30.47)
+
+    def test_zero_cost_task(self) -> None:
+        """Test taska o koszcie zerowym - poprawna wartość, nie brak danych"""
+        tasks = [_make_task_with_approx("1", 0.0, 0.0)]
+        assert get_approx_day_cost(tasks) == (0.0, 0.0)
+
+    def test_many_tasks(self) -> None:
+        """Test sumowania wielu tasków w jednym dniu"""
+        tasks = [
+            _make_task_with_approx("1", 100.00, 23.70),
+            _make_task_with_approx("2", 200.00, 47.39),
+            _make_task_with_approx("3", 300.00, 71.09),
+            _make_task_with_approx("4", 50.50, 11.97),
+        ]
+        assert get_approx_day_cost(tasks) == (650.50, 154.15)
+
+    def test_unpaid_task_is_included(self) -> None:
+        """Test, że task ze statusem 'Oczekuje' też wchodzi do sumy przybliżonej"""
+        task = _make_task_with_approx("1", 128.53, 30.47)
+        task.status = "Oczekuje"
+        assert get_approx_day_cost([task]) == (128.53, 30.47)
+
+    def test_mixed_statuses_all_included(self) -> None:
+        """Test, że taski o różnych statusach są sumowane tak samo"""
+        paid = _make_task_with_approx("1", 128.53, 30.47)
+        paid.status = "Zapłacone"
+        pending = _make_task_with_approx("2", 237.50, 56.28)
+        pending.status = "Oczekuje"
+        assert get_approx_day_cost([paid, pending]) == (366.03, 86.75)
+
+    def test_missing_approx_pln_raises_error(self) -> None:
+        """Test gdy task nie ma ustawionego cost_approx_pln"""
+        tasks = [_make_task_with_approx("1", None, 30.47)]
+        with pytest.raises(MissingCalculationDataError):
+            get_approx_day_cost(tasks)
+
+    def test_missing_approx_eur_raises_error(self) -> None:
+        """Test gdy task nie ma ustawionego cost_approx_eur"""
+        tasks = [_make_task_with_approx("1", 128.53, None)]
+        with pytest.raises(MissingCalculationDataError):
+            get_approx_day_cost(tasks)
+
+    def test_error_details_contain_context_pln(self) -> None:
+        """Test zawartości details w wyjątku - task_id i brakujące cost_approx_pln"""
+        tasks = [_make_task_with_approx("task_dev_07", None, 30.47)]
+        with pytest.raises(MissingCalculationDataError) as exc_info:
+            get_approx_day_cost(tasks)
+        assert exc_info.value.details["task_id"] == "task_dev_07"
+        assert exc_info.value.details["missing_field"] == "cost_approx_pln"
+
+    def test_error_details_contain_context_eur(self) -> None:
+        """Test zawartości details w wyjątku - task_id i brakujące cost_approx_eur"""
+        tasks = [_make_task_with_approx("task_dev_08", 128.53, None)]
+        with pytest.raises(MissingCalculationDataError) as exc_info:
+            get_approx_day_cost(tasks)
+        assert exc_info.value.details["task_id"] == "task_dev_08"
+        assert exc_info.value.details["missing_field"] == "cost_approx_eur"
+
+    def test_error_points_to_first_incomplete_task(self) -> None:
+        """Test, że wyjątek wskazuje pierwszy niekompletny task w dniu"""
+        tasks = [
+            _make_task_with_approx("1", 128.53, 30.47),
+            _make_task_with_approx("2", None, 30.47),
+            _make_task_with_approx("3", None, None),
+        ]
+        with pytest.raises(MissingCalculationDataError) as exc_info:
+            get_approx_day_cost(tasks)
+        assert exc_info.value.details["task_id"] == "2"
+
+    def test_incomplete_task_is_not_silently_skipped(self) -> None:
+        """Test, że brakujący koszt nie jest pomijany kosztem zaniżenia sumy dnia"""
+        tasks = [
+            _make_task_with_approx("1", 128.53, 30.47),
+            _make_task_with_approx("2", None, None),
+        ]
+        with pytest.raises(MissingCalculationDataError):
+            get_approx_day_cost(tasks)
+
+    def test_does_not_mutate_input_tasks(self) -> None:
+        """Test, że funkcja nie zmienia stanu przekazanych tasków"""
+        tasks = [
+            _make_task_with_approx("1", 128.53, 30.47),
+            _make_task_with_approx("2", 237.50, 56.28),
+        ]
+        get_approx_day_cost(tasks)
+        assert tasks[0].cost_approx_pln == 128.53
+        assert tasks[0].cost_approx_eur == 30.47
+        assert tasks[1].cost_approx_pln == 237.50
+        assert tasks[1].cost_approx_eur == 56.28
+
+    def test_does_not_modify_input_list(self) -> None:
+        """Test, że funkcja nie zmienia długości przekazanej listy"""
+        tasks = [_make_task_with_approx("1"), _make_task_with_approx("2")]
+        get_approx_day_cost(tasks)
+        assert len(tasks) == 2
