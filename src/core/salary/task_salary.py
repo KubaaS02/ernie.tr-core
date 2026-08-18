@@ -357,6 +357,27 @@ def get_diff_month(days_in_month: List[day]) -> Tuple[Optional[float], DiffStatu
         Krotka (diff_month, diff_month_status):
             diff_month: Łączna rozbieżność miesiąca w PLN (float) lub None, gdy brak płatności
             diff_month_status: Status rozbieżności miesiąca ("Pending", "Positive", "Negative", "Zero")
+
+    Examples:
+            >>> # Miesiąc z dwoma rozliczonymi dniami i jednym bez płatności
+            >>> # day_1: diff_day = -21.53, day_2: diff_day = 10.00, day_3: diff_day = None
+            >>> get_diff_month([day_1, day_2, day_3])
+            (-11.53, 'Negative')
+
+            >>> # Nadpłata w skali miesiąca
+            >>> # day_1: diff_day = 120.00, day_2: diff_day = 35.50
+            >>> get_diff_month([day_1, day_2])
+            (155.50, 'Positive')
+
+            >>> # Rozbieżności dni znoszą się wzajemnie
+            >>> # day_1: diff_day = -21.53, day_2: diff_day = 21.53
+            >>> get_diff_month([day_1, day_2])
+            (0.0, 'Zero')
+
+            >>> # Żaden dzień w miesiącu nie ma jeszcze płatności
+            >>> # day_1, day_2: wszystkie taski bez cost_actual_pln
+            >>> get_diff_month([day_1, day_2])
+            (None, 'Pending')
     """
     paid_diffs_day: List[float] = []
     diff_month_status: DiffStatus = "Pending"
@@ -380,3 +401,70 @@ def get_diff_month(days_in_month: List[day]) -> Tuple[Optional[float], DiffStatu
         diff_month = 0.0
 
     return diff_month, diff_month_status
+
+
+def get_approx_day_cost(tasks_day: List[Task]) -> Tuple[float, float]:
+    """
+    Algorytm oblicza łączny koszt przybliżony dla danego dnia w PLN i EUR.
+
+    Sumowane są wszystkie taski przypisane do dnia, niezależnie od statusu płatności —
+    koszt przybliżony jest wyliczany w momencie utworzenia taska, więc dotyczy również
+    tasków nieopłaconych. Dzień bez tasków ma sumy zerowe.
+
+    Args:
+        tasks_day: Lista tasków przypisanych do jednego dnia
+
+    Returns:
+        Krotka (cost_approx_day_pln, cost_approx_day_eur):
+            cost_approx_day_pln: Łączny koszt przybliżony dnia w PLN (float),
+                zaokrąglony do 2 miejsc po przecinku
+            cost_approx_day_eur: Łączny koszt przybliżony dnia w EUR (float),
+                zaokrąglony do 2 miejsc po przecinku
+
+    Raises:
+        MissingCalculationDataError: Któryś task w dniu ma puste cost_approx_pln
+            lub cost_approx_eur
+
+    Examples:
+        >>> # Dzień z dwoma taskami
+        >>> tasks = [
+        ...     Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),
+        ...          task_stop=datetime(2025, 11, 1, 11, 0),
+        ...          cost_approx_pln=128.53, cost_approx_eur=30.47),
+        ...     Task(task_id="2", task_start=datetime(2025, 11, 1, 12, 0),
+        ...          task_stop=datetime(2025, 11, 1, 13, 0),
+        ...          cost_approx_pln=237.50, cost_approx_eur=56.28),
+        ... ]
+        >>> get_approx_day_cost(tasks)
+        (366.03, 86.75)
+
+        >>> # Dzień bez tasków
+        >>> get_approx_day_cost([])
+        (0.0, 0.0)
+    """
+
+    approx_costs_pln: List[float] = []
+    approx_costs_eur: List[float] = []
+
+    for task in tasks_day:
+        if task.cost_approx_pln is None:
+            raise MissingCalculationDataError(
+                details={
+                    "task_id": task.task_id,
+                    "missing_field": "cost_approx_pln"
+                }
+            )
+        if task.cost_approx_eur is None:
+            raise MissingCalculationDataError(
+                details={
+                    "task_id": task.task_id,
+                    "missing_field": "cost_approx_eur"
+                }
+            )
+        approx_costs_pln.append(task.cost_approx_pln)
+        approx_costs_eur.append(task.cost_approx_eur)
+
+    cost_approx_day_pln = round(sum(approx_costs_pln), 2)
+    cost_approx_day_eur = round(sum(approx_costs_eur), 2)
+
+    return cost_approx_day_pln, cost_approx_day_eur
