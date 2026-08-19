@@ -468,3 +468,81 @@ def get_approx_day_cost(tasks_day: List[Task]) -> Tuple[float, float]:
     cost_approx_day_eur = round(sum(approx_costs_eur), 2)
 
     return cost_approx_day_pln, cost_approx_day_eur
+
+
+def get_actual_day_cost(tasks_day: List[Task]) -> Tuple[float, float]:
+    """
+    Algorytm oblicza łączny koszt faktyczny dla danego dnia w PLN i EUR.
+
+    Sumowane są wyłącznie taski ze statusem "Zapłacone". Taski o statusie
+    "Oczekuje" lub "W trakcie" są pomijane, nawet jeżeli mają wypełnione pola
+    kosztu faktycznego — status płatności jest źródłem prawdy o tym, czy
+    pieniądze faktycznie wpłynęły. Dzień bez opłaconych tasków ma sumy zerowe.
+
+    Args:
+        tasks_day: Lista tasków przypisanych do jednego dnia
+
+    Returns:
+        Krotka (cost_actual_day_pln, cost_actual_day_eur):
+            cost_actual_day_pln: Łączny koszt faktyczny dnia w PLN (float),
+                zaokrąglony do 2 miejsc po przecinku
+            cost_actual_day_eur: Łączny koszt faktyczny dnia w EUR (float),
+                zaokrąglony do 2 miejsc po przecinku
+
+    Raises:
+        MissingCalculationDataError: Task ze statusem "Zapłacone" ma puste
+            cost_actual_pln lub cost_actual_eur
+
+    Examples:
+        >>> # Dzień z dwoma opłaconymi taskami i jednym oczekującym
+        >>> paid_1 = Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),
+        ...               task_stop=datetime(2025, 11, 1, 11, 0),
+        ...               status="Zapłacone",
+        ...               cost_actual_pln=102.00, cost_actual_eur=24.17)
+        >>> paid_2 = Task(task_id="3", task_start=datetime(2025, 11, 1, 14, 0),
+        ...               task_stop=datetime(2025, 11, 1, 15, 0),
+        ...               status="Zapłacone",
+        ...               cost_actual_pln=110.50, cost_actual_eur=26.18)
+        >>> pending = Task(task_id="2", task_start=datetime(2025, 11, 1, 12, 0),
+        ...                task_stop=datetime(2025, 11, 1, 13, 0))
+        >>> get_actual_day_cost([paid_1, pending, paid_2])
+        (212.5, 50.35)
+
+        >>> # Dzień bez opłaconych tasków
+        >>> get_actual_day_cost([pending])
+        (0.0, 0.0)
+
+        >>> # Dzień bez tasków
+        >>> get_actual_day_cost([])
+        (0.0, 0.0)
+    """
+
+    actual_costs_pln: List[float] = []
+    actual_costs_eur: List[float] = []
+
+    for task in tasks_day:
+        if task.status != "Zapłacone":
+            continue
+
+        if task.cost_actual_pln is None:
+            raise MissingCalculationDataError(
+                details={
+                    "task_id": task.task_id,
+                    "missing_field": "cost_actual_pln"
+                }
+            )
+        if task.cost_actual_eur is None:
+            raise MissingCalculationDataError(
+                details={
+                    "task_id": task.task_id,
+                    "missing_field": "cost_actual_eur"
+                }
+            )
+
+        actual_costs_pln.append(task.cost_actual_pln)
+        actual_costs_eur.append(task.cost_actual_eur)
+
+    cost_actual_day_pln = round(sum(actual_costs_pln), 2)
+    cost_actual_day_eur = round(sum(actual_costs_eur), 2)
+
+    return cost_actual_day_pln, cost_actual_day_eur
