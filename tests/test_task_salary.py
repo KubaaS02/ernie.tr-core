@@ -7,7 +7,8 @@ from tests import (
     get_actual_cost_euro_from_pln,
     get_actual_approx_cost_diff,
     get_diff_day, get_diff_month,
-    get_approx_day_cost)
+    get_approx_day_cost,
+    get_actual_day_cost)
 from datetime import datetime, date
 from tests import InvalidExchangeRateError, InvalidHourdlyRateError, MissingCalculationDataError
 
@@ -585,4 +586,170 @@ class TestGetApproxDayCost:
         """Test, że funkcja nie zmienia długości przekazanej listy"""
         tasks = [_make_task_with_approx("1"), _make_task_with_approx("2")]
         get_approx_day_cost(tasks)
+        assert len(tasks) == 2
+
+
+def _make_task_with_actual(
+    task_id: str = "1",
+    cost_actual_pln: float | None = 102.00,
+    cost_actual_eur: float | None = 24.17,
+    status: str = "Zapłacone",
+) -> Task:
+    """Tworzy task testowy z ustawionymi (lub nie) kosztami faktycznymi"""
+    return Task(
+        task_start=datetime(2025, 11, 1, 9, 0),
+        task_stop=datetime(2025, 11, 1, 11, 0),
+        task_id=task_id,
+        status=status,
+        cost_actual_pln=cost_actual_pln,
+        cost_actual_eur=cost_actual_eur,
+    )
+
+
+class TestGetActualDayCost:
+    """Testy sumowania kosztów faktycznych dziennych (FR-421-15)"""
+
+    def test_example(self) -> None:
+        """Test przykładu ze specyfikacji: 102.00 + 110.50 = 212.50 PLN, 24.17 + 26.18 = 50.35 EUR"""
+        tasks = [
+            _make_task_with_actual("1", 102.00, 24.17),
+            _make_task_with_actual("2", None, None, status="Oczekuje"),
+            _make_task_with_actual("3", 110.50, 26.18),
+        ]
+        assert get_actual_day_cost(tasks) == (212.50, 50.35)
+
+    def test_empty_list(self) -> None:
+        """Test pustej listy tasków - obie sumy zerowe"""
+        assert get_actual_day_cost([]) == (0.0, 0.0)
+
+    def test_single_paid_task(self) -> None:
+        """Test dnia z jednym opłaconym taskiem - suma równa kosztowi taska"""
+        tasks = [_make_task_with_actual("1", 102.00, 24.17)]
+        assert get_actual_day_cost(tasks) == (102.00, 24.17)
+
+    def test_no_paid_tasks(self) -> None:
+        """Test dnia bez opłaconych tasków - obie sumy zerowe, nie None"""
+        tasks = [
+            _make_task_with_actual("1", None, None, status="Oczekuje"),
+            _make_task_with_actual("2", None, None, status="W trakcie"),
+        ]
+        assert get_actual_day_cost(tasks) == (0.0, 0.0)
+
+    def test_pending_task_is_ignored(self) -> None:
+        """Test, że task ze statusem 'Oczekuje' nie wchodzi do sumy"""
+        tasks = [
+            _make_task_with_actual("1", 102.00, 24.17),
+            _make_task_with_actual("2", None, None, status="Oczekuje"),
+        ]
+        assert get_actual_day_cost(tasks) == (102.00, 24.17)
+
+    def test_in_progress_task_is_ignored(self) -> None:
+        """Test, że task ze statusem 'W trakcie' nie wchodzi do sumy"""
+        tasks = [
+            _make_task_with_actual("1", 102.00, 24.17),
+            _make_task_with_actual("2", None, None, status="W trakcie"),
+        ]
+        assert get_actual_day_cost(tasks) == (102.00, 24.17)
+
+    def test_unpaid_task_with_costs_is_ignored(self) -> None:
+        """Test, że task nieopłacony jest pomijany mimo wypełnionych kosztów faktycznych"""
+        tasks = [
+            _make_task_with_actual("1", 102.00, 24.17),
+            _make_task_with_actual("2", 500.00, 118.48, status="Oczekuje"),
+        ]
+        assert get_actual_day_cost(tasks) == (102.00, 24.17)
+
+    def test_zero_cost_paid_task(self) -> None:
+        """Test opłaconego taska o koszcie zerowym - poprawna wartość, nie brak danych"""
+        tasks = [_make_task_with_actual("1", 0.0, 0.0)]
+        assert get_actual_day_cost(tasks) == (0.0, 0.0)
+
+    def test_many_paid_tasks(self) -> None:
+        """Test sumowania wielu opłaconych tasków w jednym dniu"""
+        tasks = [
+            _make_task_with_actual("1", 100.00, 23.70),
+            _make_task_with_actual("2", 200.00, 47.39),
+            _make_task_with_actual("3", 300.00, 71.09),
+            _make_task_with_actual("4", 50.50, 11.97),
+        ]
+        assert get_actual_day_cost(tasks) == (650.50, 154.15)
+
+    def test_missing_actual_pln_raises_error(self) -> None:
+        """Test gdy opłacony task nie ma ustawionego cost_actual_pln"""
+        tasks = [_make_task_with_actual("1", None, 24.17)]
+        with pytest.raises(MissingCalculationDataError):
+            get_actual_day_cost(tasks)
+
+    def test_missing_actual_eur_raises_error(self) -> None:
+        """Test gdy opłacony task nie ma ustawionego cost_actual_eur"""
+        tasks = [_make_task_with_actual("1", 102.00, None)]
+        with pytest.raises(MissingCalculationDataError):
+            get_actual_day_cost(tasks)
+
+    def test_error_details_contain_context_pln(self) -> None:
+        """Test zawartości details w wyjątku - task_id i brakujące cost_actual_pln"""
+        tasks = [_make_task_with_actual("task_dev_09", None, 24.17)]
+        with pytest.raises(MissingCalculationDataError) as exc_info:
+            get_actual_day_cost(tasks)
+        assert exc_info.value.details["task_id"] == "task_dev_09"
+        assert exc_info.value.details["missing_field"] == "cost_actual_pln"
+
+    def test_error_details_contain_context_eur(self) -> None:
+        """Test zawartości details w wyjątku - task_id i brakujące cost_actual_eur"""
+        tasks = [_make_task_with_actual("task_dev_10", 102.00, None)]
+        with pytest.raises(MissingCalculationDataError) as exc_info:
+            get_actual_day_cost(tasks)
+        assert exc_info.value.details["task_id"] == "task_dev_10"
+        assert exc_info.value.details["missing_field"] == "cost_actual_eur"
+
+    def test_error_points_to_first_incomplete_paid_task(self) -> None:
+        """Test, że wyjątek wskazuje pierwszy niekompletny opłacony task w dniu"""
+        tasks = [
+            _make_task_with_actual("1", 102.00, 24.17),
+            _make_task_with_actual("2", None, 24.17),
+            _make_task_with_actual("3", None, None),
+        ]
+        with pytest.raises(MissingCalculationDataError) as exc_info:
+            get_actual_day_cost(tasks)
+        assert exc_info.value.details["task_id"] == "2"
+
+    def test_incomplete_unpaid_task_does_not_raise(self) -> None:
+        """Test, że nieopłacony task bez kosztów nie powoduje błędu - jest po prostu pomijany"""
+        tasks = [
+            _make_task_with_actual("1", 102.00, 24.17),
+            _make_task_with_actual("2", None, None, status="Oczekuje"),
+        ]
+        assert get_actual_day_cost(tasks) == (102.00, 24.17)
+
+    def test_incomplete_paid_task_is_not_silently_skipped(self) -> None:
+        """Test, że brakujący koszt opłaconego taska nie jest pomijany kosztem zaniżenia sumy dnia"""
+        tasks = [
+            _make_task_with_actual("1", 102.00, 24.17),
+            _make_task_with_actual("2", None, None),
+        ]
+        with pytest.raises(MissingCalculationDataError):
+            get_actual_day_cost(tasks)
+
+    def test_does_not_mutate_input_tasks(self) -> None:
+        """Test, że funkcja nie zmienia stanu przekazanych tasków"""
+        tasks = [
+            _make_task_with_actual("1", 102.00, 24.17),
+            _make_task_with_actual("2", 110.50, 26.18),
+        ]
+        get_actual_day_cost(tasks)
+        assert tasks[0].cost_actual_pln == 102.00
+        assert tasks[0].cost_actual_eur == 24.17
+        assert tasks[1].cost_actual_pln == 110.50
+        assert tasks[1].cost_actual_eur == 26.18
+
+    def test_does_not_change_task_status(self) -> None:
+        """Test, że funkcja nie modyfikuje statusu płatności tasków"""
+        pending = _make_task_with_actual("1", None, None, status="Oczekuje")
+        get_actual_day_cost([pending])
+        assert pending.status == "Oczekuje"
+
+    def test_does_not_modify_input_list(self) -> None:
+        """Test, że funkcja nie zmienia długości przekazanej listy"""
+        tasks = [_make_task_with_actual("1"), _make_task_with_actual("2")]
+        get_actual_day_cost(tasks)
         assert len(tasks) == 2
