@@ -546,3 +546,57 @@ def get_actual_day_cost(tasks_day: List[Task]) -> Tuple[float, float]:
     cost_actual_day_eur = round(sum(actual_costs_eur), 2)
 
     return cost_actual_day_pln, cost_actual_day_eur
+
+
+def get_approx_month_cost(days_in_month: List[day]) -> Tuple[float, float]:
+    """
+    Algorytm oblicza łączny koszt przybliżony dla danego miesiąca w PLN i EUR.
+
+    Sumowane są koszty przybliżone wszystkich dni wchodzących w skład miesiąca,
+    niezależnie od statusu płatności tasków — koszt przybliżony jest wyliczany
+    w momencie utworzenia taska. Miesiąc bez dni lub bez tasków ma sumy zerowe.
+
+    Args:
+        days_in_month: Lista dni wchodzących w skład jednego miesiąca
+
+    Returns:
+        Krotka (cost_approx_month_pln, cost_approx_month_eur):
+            cost_approx_month_pln: Łączny koszt przybliżony miesiąca w PLN (float),
+                zaokrąglony do 2 miejsc po przecinku
+            cost_approx_month_eur: Łączny koszt przybliżony miesiąca w EUR (float),
+                zaokrąglony do 2 miejsc po przecinku
+
+    Raises:
+        MissingCalculationDataError: Któryś task w którymkolwiek dniu miesiąca
+            ma puste cost_approx_pln lub cost_approx_eur
+
+    Examples:
+        >>> # Miesiąc z dwoma dniami zawierającymi taski
+        >>> # day_1: (366.03, 86.75), day_2: (240.00, 56.87)
+        >>> get_approx_month_cost([day_1, day_2])
+        (606.03, 143.62)
+
+        >>> # Dni bez tasków nie wnoszą nic do sumy
+        >>> # day_1: (366.03, 86.75), day_2: brak tasków
+        >>> get_approx_month_cost([day_1, day_2])
+        (366.03, 86.75)
+
+        >>> # Miesiąc bez dni
+        >>> get_approx_month_cost([])
+        (0.0, 0.0)
+    """
+
+    approx_costs_day_pln: List[float] = []
+    approx_costs_day_eur: List[float] = []
+
+    for day_in_month in days_in_month:
+        cost_approx_day_pln, cost_approx_day_eur = get_approx_day_cost(
+            day_in_month.tasks)
+
+        approx_costs_day_pln.append(cost_approx_day_pln)
+        approx_costs_day_eur.append(cost_approx_day_eur)
+
+    cost_approx_month_pln = round(sum(approx_costs_day_pln, 0.0), 2)
+    cost_approx_month_eur = round(sum(approx_costs_day_eur, 0.0), 2)
+
+    return cost_approx_month_pln, cost_approx_month_eur
