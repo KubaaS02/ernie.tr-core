@@ -8,7 +8,8 @@ from tests import (
     get_actual_approx_cost_diff,
     get_diff_day, get_diff_month,
     get_approx_day_cost,
-    get_actual_day_cost)
+    get_actual_day_cost,
+    get_approx_month_cost)
 from datetime import datetime, date
 from tests import InvalidExchangeRateError, InvalidHourdlyRateError, MissingCalculationDataError
 
@@ -753,3 +754,109 @@ class TestGetActualDayCost:
         tasks = [_make_task_with_actual("1"), _make_task_with_actual("2")]
         get_actual_day_cost(tasks)
         assert len(tasks) == 2
+
+
+def _make_task_with_approx_cost(task_id: str,
+                                cost_approx_pln: float | None,
+                                cost_approx_eur: float | None) -> Task:
+    """Tworzy task testowy z podanymi kosztami przybliżonymi"""
+    return Task(
+        task_id=task_id,
+        task_start=datetime(2025, 11, 1, 9, 0),
+        task_stop=datetime(2025, 11, 1, 11, 0),
+        cost_approx_pln=cost_approx_pln,
+        cost_approx_eur=cost_approx_eur,
+    )
+
+
+class TestGetApproxMonthCost:
+    """Testy sumowania kosztów przybliżonych miesięcznych (FR-421-16)"""
+
+    def test_example(self) -> None:
+        """Test przykładu z wymagań: 366.03 + 240.00 = 606.03 PLN"""
+        days = [
+            _make_day_with_tasks("2025-11-01", [
+                _make_task_with_approx_cost("1", 128.53, 30.47),
+                _make_task_with_approx_cost("2", 237.50, 56.28),
+            ]),
+            _make_day_with_tasks("2025-11-02", [
+                _make_task_with_approx_cost("3", 240.00, 56.87),
+            ]),
+        ]
+        assert get_approx_month_cost(days) == (606.03, 143.62)
+
+    def test_empty_list(self) -> None:
+        """Test pustej listy dni - sumy zerowe"""
+        assert get_approx_month_cost([]) == (0.0, 0.0)
+
+    def test_days_without_tasks(self) -> None:
+        """Test miesiąca złożonego wyłącznie z dni bez tasków"""
+        days = [_make_day_with_tasks("2025-11-01"),
+                _make_day_with_tasks("2025-11-02")]
+        assert get_approx_month_cost(days) == (0.0, 0.0)
+
+    def test_empty_days_do_not_affect_sum(self) -> None:
+        """Test że dni bez tasków nie zmieniają sumy miesiąca"""
+        days = [
+            _make_day_with_tasks(
+                "2025-11-01", [_make_task_with_approx_cost("1", 128.53, 30.47)]),
+            _make_day_with_tasks("2025-11-02"),
+            _make_day_with_tasks("2025-11-03"),
+        ]
+        assert get_approx_month_cost(days) == (128.53, 30.47)
+
+    def test_single_day_single_task(self) -> None:
+        """Test miesiąca z jednym dniem i jednym taskiem"""
+        days = [_make_day_with_tasks(
+            "2025-11-01", [_make_task_with_approx_cost("1", 100.00, 23.70)])]
+        assert get_approx_month_cost(days) == (100.00, 23.70)
+
+    def test_unpaid_tasks_are_included(self) -> None:
+        """Test że taski nieopłacone wchodzą do sumy przybliżonej"""
+        task = _make_task_with_approx_cost("1", 128.53, 30.47)
+        task.status = "Oczekuje"
+        days = [_make_day_with_tasks("2025-11-01", [task])]
+        assert get_approx_month_cost(days) == (128.53, 30.47)
+
+    def test_zero_cost_tasks(self) -> None:
+        """Test miesiąca z taskami o zerowym koszcie"""
+        days = [_make_day_with_tasks(
+            "2025-11-01", [_make_task_with_approx_cost("1", 0.0, 0.0)])]
+        assert get_approx_month_cost(days) == (0.0, 0.0)
+
+    def test_result_is_float_for_empty_month(self) -> None:
+        """Test że pusty miesiąc zwraca float, nie int"""
+        cost_approx_month_pln, cost_approx_month_eur = get_approx_month_cost([
+        ])
+        assert isinstance(cost_approx_month_pln, float)
+        assert isinstance(cost_approx_month_eur, float)
+
+    def test_missing_approx_pln_raises_error(self) -> None:
+        """Test błędu, gdy task w miesiącu ma puste cost_approx_pln"""
+        days = [_make_day_with_tasks(
+            "2025-11-01", [_make_task_with_approx_cost("1", None, 30.47)])]
+        with pytest.raises(MissingCalculationDataError):
+            get_approx_month_cost(days)
+
+    def test_error_points_to_first_incomplete_task(self) -> None:
+        """Test że błąd wskazuje pierwszy niekompletny task w miesiącu"""
+        days = [
+            _make_day_with_tasks(
+                "2025-11-01", [_make_task_with_approx_cost("1", 128.53, 30.47)]),
+            _make_day_with_tasks("2025-11-02", [
+                _make_task_with_approx_cost("2", None, 30.47),
+                _make_task_with_approx_cost("3", None, 30.47),
+            ]),
+        ]
+        with pytest.raises(MissingCalculationDataError) as exc_info:
+            get_approx_month_cost(days)
+        assert exc_info.value.details["task_id"] == "2"
+        assert exc_info.value.details["missing_field"] == "cost_approx_pln"
+
+    def test_does_not_modify_input_list(self) -> None:
+        """Test że funkcja nie modyfikuje listy dni"""
+        days = [_make_day_with_tasks(
+            "2025-11-01", [_make_task_with_approx_cost("1", 128.53, 30.47)])]
+        get_approx_month_cost(days)
+        assert len(days) == 1
+        assert len(days[0].tasks) == 1
