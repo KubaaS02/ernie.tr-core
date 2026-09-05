@@ -9,7 +9,8 @@ from tests import (
     get_diff_day, get_diff_month,
     get_approx_day_cost,
     get_actual_day_cost,
-    get_approx_month_cost)
+    get_approx_month_cost,
+    get_actual_month_cost)
 from datetime import datetime, date
 from tests import InvalidExchangeRateError, InvalidHourdlyRateError, MissingCalculationDataError
 
@@ -858,5 +859,112 @@ class TestGetApproxMonthCost:
         days = [_make_day_with_tasks(
             "2025-11-01", [_make_task_with_approx_cost("1", 128.53, 30.47)])]
         get_approx_month_cost(days)
+        assert len(days) == 1
+        assert len(days[0].tasks) == 1
+
+
+class TestGetActualMonthCost:
+    """Testy sumowania kosztów faktycznych miesięcznych (FR-421-17)"""
+
+    def test_example(self) -> None:
+        """Test przykładu z wymagań: 212.50 + 180.00 = 392.50 PLN, 50.35 + 42.65 = 93.00 EUR"""
+        days = [
+            _make_day_with_tasks("2025-11-01", [
+                _make_task_with_actual("1", 102.00, 24.17),
+                _make_task_with_actual("2", 110.50, 26.18),
+            ]),
+            _make_day_with_tasks("2025-11-02", [
+                _make_task_with_actual("3", 180.00, 42.65),
+            ]),
+        ]
+        assert get_actual_month_cost(days) == (392.50, 93.00)
+
+    def test_empty_list(self) -> None:
+        """Test pustej listy dni - sumy zerowe"""
+        assert get_actual_month_cost([]) == (0.0, 0.0)
+
+    def test_days_without_tasks(self) -> None:
+        """Test miesiąca złożonego wyłącznie z dni bez tasków"""
+        days = [_make_day_with_tasks("2025-11-01"),
+                _make_day_with_tasks("2025-11-02")]
+        assert get_actual_month_cost(days) == (0.0, 0.0)
+
+    def test_empty_days_do_not_affect_sum(self) -> None:
+        """Test że dni bez tasków nie zmieniają sumy miesiąca"""
+        days = [
+            _make_day_with_tasks(
+                "2025-11-01", [_make_task_with_actual("1", 102.00, 24.17)]),
+            _make_day_with_tasks("2025-11-02"),
+            _make_day_with_tasks("2025-11-03"),
+        ]
+        assert get_actual_month_cost(days) == (102.00, 24.17)
+
+    def test_single_day_single_task(self) -> None:
+        """Test miesiąca z jednym dniem i jednym opłaconym taskiem"""
+        days = [_make_day_with_tasks(
+            "2025-11-01", [_make_task_with_actual("1", 100.00, 23.70)])]
+        assert get_actual_month_cost(days) == (100.00, 23.70)
+
+    def test_unpaid_tasks_are_excluded(self) -> None:
+        """Test że taski nieopłacone nie wchodzą do sumy faktycznej miesiąca"""
+        days = [
+            _make_day_with_tasks("2025-11-01", [
+                _make_task_with_actual("1", 102.00, 24.17),
+                _make_task_with_actual(
+                    "2", 500.00, 118.48, status="Oczekuje"),
+            ]),
+        ]
+        assert get_actual_month_cost(days) == (102.00, 24.17)
+
+    def test_month_without_paid_tasks(self) -> None:
+        """Test miesiąca bez ani jednego opłaconego taska - sumy zerowe, nie None"""
+        days = [
+            _make_day_with_tasks(
+                "2025-11-01", [_make_task_with_actual("1", None, None, status="Oczekuje")]),
+            _make_day_with_tasks(
+                "2025-11-02", [_make_task_with_actual("2", None, None, status="W trakcie")]),
+        ]
+        assert get_actual_month_cost(days) == (0.0, 0.0)
+
+    def test_zero_cost_paid_task(self) -> None:
+        """Test miesiąca z opłaconym taskiem o koszcie zerowym"""
+        days = [_make_day_with_tasks(
+            "2025-11-01", [_make_task_with_actual("1", 0.0, 0.0)])]
+        assert get_actual_month_cost(days) == (0.0, 0.0)
+
+    def test_missing_actual_pln_raises_error(self) -> None:
+        """Test błędu, gdy opłacony task w miesiącu ma puste cost_actual_pln"""
+        days = [_make_day_with_tasks(
+            "2025-11-01", [_make_task_with_actual("1", None, 24.17)])]
+        with pytest.raises(MissingCalculationDataError):
+            get_actual_month_cost(days)
+
+    def test_missing_actual_eur_raises_error(self) -> None:
+        """Test błędu, gdy opłacony task w miesiącu ma puste cost_actual_eur"""
+        days = [_make_day_with_tasks(
+            "2025-11-01", [_make_task_with_actual("1", 102.00, None)])]
+        with pytest.raises(MissingCalculationDataError):
+            get_actual_month_cost(days)
+
+    def test_error_points_to_first_incomplete_task(self) -> None:
+        """Test że błąd wskazuje pierwszy niekompletny opłacony task w miesiącu"""
+        days = [
+            _make_day_with_tasks(
+                "2025-11-01", [_make_task_with_actual("1", 102.00, 24.17)]),
+            _make_day_with_tasks("2025-11-02", [
+                _make_task_with_actual("task_dev_02", None, 26.18),
+                _make_task_with_actual("task_dev_03", None, 26.18),
+            ]),
+        ]
+        with pytest.raises(MissingCalculationDataError) as exc_info:
+            get_actual_month_cost(days)
+        assert exc_info.value.details["task_id"] == "task_dev_02"
+        assert exc_info.value.details["missing_field"] == "cost_actual_pln"
+
+    def test_does_not_modify_input_list(self) -> None:
+        """Test że funkcja nie modyfikuje listy dni"""
+        days = [_make_day_with_tasks(
+            "2025-11-01", [_make_task_with_actual("1", 102.00, 24.17)])]
+        get_actual_month_cost(days)
         assert len(days) == 1
         assert len(days[0].tasks) == 1
