@@ -9,7 +9,8 @@ from core.salary.task_salary import (
     get_diff_day, get_diff_month,
     get_approx_day_cost,
     get_actual_day_cost,
-    get_approx_month_cost)
+    get_approx_month_cost,
+    get_actual_month_cost)
 from exceptions.handler_error import BusinessError
 from core.time.task_duration import (
     get_task_time_duration,
