@@ -655,3 +655,68 @@ def get_actual_month_cost(days_in_month: List[day]) -> Tuple[float, float]:
     cost_actual_month_eur = round(sum(actual_costs_day_eur, 0.0), 2)
 
     return cost_actual_month_pln, cost_actual_month_eur
+
+
+def get_avg_rate_pln_per_h(
+    cost_actual_month_pln: float,
+    total_duration_month_min: int
+) -> float:
+    """Algorytm oblicza średnią stawkę godzinową w PLN na podstawie kosztu faktycznego
+    miesiąca i łącznego czasu pracy.
+
+    Stawka jest wynikiem podzielenia faktycznie otrzymanej kwoty przez przepracowane
+    godziny, więc pokazuje ile realnie zarobiono na godzinie pracy.
+    Miesiąc bez przepracowanych minut ma stawkę zerową.
+
+    Args:
+        cost_actual_month_pln: Łączny koszt faktyczny miesiąca w PLN (float),
+            wynik get_actual_month_cost
+        total_duration_month_min: Łączny czas pracy w miesiącu w minutach (int),
+            wynik get_tasks_time_one_month
+
+    Returns:
+        avg_rate_pln_per_h: Średnia stawka godzinowa w PLN (float),
+            zaokrąglona do 2 miejsc po przecinku. 0.0 gdy w miesiącu nie ma
+            przepracowanych minut.
+
+    Raises:
+        TypeError: total_duration_month_min nie jest typu int
+        ValueError: total_duration_month_min < 0
+        ValueError: cost_actual_month_pln < 0
+
+    Examples:
+        >>> # Przykład z wymagań: 392.50 PLN na 549 minutach (9.15 h)
+        >>> get_avg_rate_pln_per_h(392.50, 549)
+        42.9
+
+        >>> # Miesiąc bez przepracowanych minut
+        >>> get_avg_rate_pln_per_h(0.0, 0)
+        0.0
+
+        >>> # Miesiąc z pracą, ale bez opłaconych tasków
+        >>> get_avg_rate_pln_per_h(0.0, 480)
+        0.0
+    """
+
+    if not isinstance(total_duration_month_min, int):
+        raise TypeError(
+            f"{total_duration_month_min} musi być int a dostałem: "
+            f"{type(total_duration_month_min).__name__}"
+        )
+    if total_duration_month_min < 0:
+        raise ValueError(
+            f"total_duration_month_min: {total_duration_month_min} must not be negative"
+        )
+    if cost_actual_month_pln < 0.0:
+        raise ValueError(
+            f"cost_actual_month_pln: {cost_actual_month_pln} must not be negative"
+        )
+
+    if total_duration_month_min == 0:
+        return 0.0
+
+    total_duration_month_hours = total_duration_month_min / 60
+    avg_rate_pln_per_h = round(
+        cost_actual_month_pln / total_duration_month_hours, 2)
+
+    return avg_rate_pln_per_h
