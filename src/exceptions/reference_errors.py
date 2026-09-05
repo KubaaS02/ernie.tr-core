@@ -5,6 +5,7 @@ from typing import Optional
 
 
 class ProjectInUseError(BusinessError):
+    """Klasa błędu, który powinien zostać wywyłoany, gdy uzytkownik będzie próbował usunąć projekt, który jest w użyciu"""
     error_id: Optional[str] = "ERR-REF-01"
     error_code: Optional[str] = "project_in_use"
     http_status: Optional[int] = 409
@@ -12,6 +13,7 @@ class ProjectInUseError(BusinessError):
 
 
 class EntityNotFoundError(BusinessError):
+    """Klasa błędu, który powinien zostać wywyłoany, gdy użytkownik będzie próbował dokonać operacji na nieistniejącym ID"""
     error_id: Optional[str] = "ERR-REF-02"
     error_code: Optional[str] = "entity_not_found"
     http_status: Optional[int] = 404
