@@ -600,3 +600,58 @@ def get_approx_month_cost(days_in_month: List[day]) -> Tuple[float, float]:
     cost_approx_month_eur = round(sum(approx_costs_day_eur, 0.0), 2)
 
     return cost_approx_month_pln, cost_approx_month_eur
+
+
+def get_actual_month_cost(days_in_month: List[day]) -> Tuple[float, float]:
+    """
+    Algorytm oblicza łączny koszt faktyczny dla danego miesiąca w PLN i EUR.
+
+    Sumowane są koszty faktyczne wszystkich dni wchodzących w skład miesiąca, przy czym
+    w obrębie każdego dnia liczą się wyłącznie taski ze statusem "Zapłacone" — status
+    płatności jest źródłem prawdy o tym, czy pieniądze faktycznie wpłynęły.
+    Miesiąc bez dni, bez tasków lub bez opłaconych tasków ma sumy zerowe.
+
+    Args:
+        days_in_month: Lista dni wchodzących w skład jednego miesiąca
+
+    Returns:
+        Krotka (cost_actual_month_pln, cost_actual_month_eur):
+            cost_actual_month_pln: Łączny koszt faktyczny miesiąca w PLN (float),
+                zaokrąglony do 2 miejsc po przecinku
+            cost_actual_month_eur: Łączny koszt faktyczny miesiąca w EUR (float),
+                zaokrąglony do 2 miejsc po przecinku
+
+    Raises:
+        MissingCalculationDataError: Któryś task ze statusem "Zapłacone" w którymkolwiek
+            dniu miesiąca ma puste cost_actual_pln lub cost_actual_eur
+
+    Examples:
+        >>> # Miesiąc z dwoma dniami zawierającymi opłacone taski
+        >>> # day_1: (212.50, 50.35), day_2: (180.00, 42.65)
+        >>> get_actual_month_cost([day_1, day_2])
+        (392.5, 93.0)
+
+        >>> # Dni bez opłaconych tasków nie wnoszą nic do sumy
+        >>> # day_1: (212.50, 50.35), day_2: wszystkie taski "Oczekuje"
+        >>> get_actual_month_cost([day_1, day_2])
+        (212.5, 50.35)
+
+        >>> # Miesiąc bez dni
+        >>> get_actual_month_cost([])
+        (0.0, 0.0)
+    """
+
+    actual_costs_day_pln: List[float] = []
+    actual_costs_day_eur: List[float] = []
+
+    for day_in_month in days_in_month:
+        cost_actual_day_pln, cost_actual_day_eur = get_actual_day_cost(
+            day_in_month.tasks)
+
+        actual_costs_day_pln.append(cost_actual_day_pln)
+        actual_costs_day_eur.append(cost_actual_day_eur)
+
+    cost_actual_month_pln = round(sum(actual_costs_day_pln, 0.0), 2)
+    cost_actual_month_eur = round(sum(actual_costs_day_eur, 0.0), 2)
+
+    return cost_actual_month_pln, cost_actual_month_eur
