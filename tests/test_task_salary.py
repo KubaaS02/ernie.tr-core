@@ -10,7 +10,8 @@ from tests import (
     get_approx_day_cost,
     get_actual_day_cost,
     get_approx_month_cost,
-    get_actual_month_cost)
+    get_actual_month_cost,
+    get_avg_rate_pln_per_h)
 from datetime import datetime, date
 from tests import InvalidExchangeRateError, InvalidHourdlyRateError, MissingCalculationDataError
 
@@ -968,3 +969,59 @@ class TestGetActualMonthCost:
         get_actual_month_cost(days)
         assert len(days) == 1
         assert len(days[0].tasks) == 1
+
+
+class TestGetAvgRatePlnPerH:
+    """Testy obliczania średniej stawki godzinowej (FR-421-18)"""
+
+    def test_example(self) -> None:
+        """Test przykładu z wymagań: 392.50 PLN / 9.15 h = 42.90 PLN/h"""
+        assert get_avg_rate_pln_per_h(392.50, 549) == 42.90
+
+    def test_zero_duration(self) -> None:
+        """Test miesiąca bez przepracowanych minut - stawka zerowa, brak dzielenia przez zero"""
+        assert get_avg_rate_pln_per_h(0.0, 0) == 0.0
+
+    def test_zero_duration_with_cost(self) -> None:
+        """Test danych niespójnych: koszt bez czasu pracy - zgodnie z wymaganiem stawka zerowa"""
+        assert get_avg_rate_pln_per_h(100.00, 0) == 0.0
+
+    def test_month_without_paid_tasks(self) -> None:
+        """Test miesiąca z pracą, ale bez opłaconych tasków - stawka zerowa"""
+        assert get_avg_rate_pln_per_h(0.0, 480) == 0.0
+
+    def test_exactly_one_hour(self) -> None:
+        """Test dokładnie jednej godziny pracy - stawka równa kosztowi"""
+        assert get_avg_rate_pln_per_h(120.00, 60) == 120.00
+
+    def test_full_month(self) -> None:
+        """Test pełnego miesiąca: 8400.00 PLN na 160 h = 52.50 PLN/h"""
+        assert get_avg_rate_pln_per_h(8400.00, 9600) == 52.50
+
+    def test_result_is_float(self) -> None:
+        """Test że wynik jest typu float także dla miesiąca zerowego"""
+        result = get_avg_rate_pln_per_h(0.0, 0)
+        assert isinstance(result, float)
+
+    def test_negative_duration_raises_error(self) -> None:
+        """Test ujemnego czasu pracy"""
+        with pytest.raises(ValueError, match="total_duration_month_min"):
+            get_avg_rate_pln_per_h(392.50, -549)
+
+    def test_negative_cost_raises_error(self) -> None:
+        """Test ujemnego kosztu faktycznego"""
+        with pytest.raises(ValueError, match="cost_actual_month_pln"):
+            get_avg_rate_pln_per_h(-392.50, 549)
+
+    def test_float_duration_raises_error(self) -> None:
+        """Test nieprawidłowego typu czasu pracy"""
+        with pytest.raises(TypeError):
+            get_avg_rate_pln_per_h(392.50, 9.15)
+
+    def test_does_not_mutate_inputs(self) -> None:
+        """Test że funkcja nie zmienia wartości wejściowych"""
+        cost = 392.50
+        duration = 549
+        get_avg_rate_pln_per_h(cost, duration)
+        assert cost == 392.50
+        assert duration == 549
