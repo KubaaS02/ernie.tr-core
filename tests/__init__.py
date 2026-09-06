@@ -11,7 +11,8 @@ from core.salary.task_salary import (
     get_actual_day_cost,
     get_approx_month_cost,
     get_actual_month_cost,
-    get_avg_rate_pln_per_h)
+    get_avg_rate_pln_per_h,
+    get_avg_rate_eur_per_h)
 from exceptions.handler_error import BusinessError
 from core.time.task_duration import (
     get_task_time_duration,
