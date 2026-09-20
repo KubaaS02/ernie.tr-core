@@ -11,3 +11,12 @@ class MissingCalculationDataError(BusinessError):
     error_code: Optional[str] = "missing_calculation_data"
     http_status: Optional[int] = 400
     default_message: Optional[str] = "Lack of data needed to calculate costs"
+
+
+class IncompleteChangeLogEntryError(BusinessError):
+    """Błąd związany z niekompletnym wpisem w historii zmian (change log)"""
+
+    error_id: Optional[str] = "ERR-DATA-04"
+    error_code: Optional[str] = "incomplete_change_log_entry"
+    http_status: Optional[int] = 500
+    default_message: Optional[str] = "The change log entry is incomplete."
