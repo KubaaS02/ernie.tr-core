@@ -5,10 +5,14 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "aiosqlite>=0.22.1",
+    "alembic>=1.20.0",
     "mypy>=1.19.1",
     "poethepoet>=0.40.0",
+    "pydantic>=2.13.5",
     "pytest>=9.0.2",
     "requests>=2.32.5",
+    "sqlalchemy[asyncio]>=2.0.54",
 ]
 
 [build-system]
