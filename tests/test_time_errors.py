@@ -1,4 +1,6 @@
 import pytest
+
+from core.helpers.task_helpers import check_overlap, tasks_overlap
 from tests import BusinessError, InvalidTaskTimeRangeError, TaskOverlapError, Task
 from datetime import datetime
 
@@ -88,6 +90,7 @@ class TestInvalidTaskTimeRangeError:
         assert result["message"] == TaskOverlapError.default_message
         assert result["details"] == details
 
+    ## Not right
     def test_TaskOverlapError_raise(self):
         """Sprawdzenie, czy TaskOverlapError zostanie rzucony przy nakładaniu się zakresów czasu"""
         task1 = Task(
@@ -111,3 +114,98 @@ class TestInvalidTaskTimeRangeError:
                 )
             with pytest.raises(TaskOverlapError):
                 check_overlap(task1, task2)
+
+    ## Right, when exception is raised
+    def test_TaskOverlapError_raise_wexception(self):
+        """Sprawdzenie, czy TaskOverlapError zostanie rzucony przy nakładaniu się zakresów czasu"""
+        task1 = Task(
+            task_id="task1",
+            task_start=datetime(2026, 1, 1, 10, 0),
+            task_stop=datetime(2026, 1, 1, 12, 0)
+        )
+
+        task2 = Task(
+            task_id="task2",
+            task_start=datetime(2026, 1, 1, 11, 0),
+            task_stop=datetime(2026, 1, 1, 13, 0)
+        )
+
+        with pytest.raises(TaskOverlapError):
+            check_overlap(task1, task2)
+
+    ## 100% right tests with another prod function that checks overlaps but does not raise exception when overlap
+    ## is found
+    def test_tasks_overlap_returns_true_for_overlapping_tasks(self) -> None:
+        task1 = Task(
+            task_id="task1",
+            task_start=datetime(2026, 1, 1, 10),
+            task_stop=datetime(2026, 1, 1, 12),
+        )
+
+        task2 = Task(
+            task_id="task2",
+            task_start=datetime(2026, 1, 1, 11),
+            task_stop=datetime(2026, 1, 1, 13),
+        )
+
+        assert tasks_overlap(task1, task2) is True
+
+    def test_tasks_overlap_returns_false_for_separated_tasks(self) -> None:
+        task1 = Task(
+            task_id="1",
+            task_start=datetime(2026, 1, 1, 10),
+            task_stop=datetime(2026, 1, 1, 11),
+        )
+
+        task2 = Task(
+            task_id="2",
+            task_start=datetime(2026, 1, 1, 12),
+            task_stop=datetime(2026, 1, 1, 13),
+        )
+
+        assert tasks_overlap(task1, task2) is False
+
+    def test_tasks_overlap_returns_false_when_second_starts_exactly_at_first_stop(self) -> None:
+        task1 = Task(
+            task_id="1",
+            task_start=datetime(2026, 1, 1, 10),
+            task_stop=datetime(2026, 1, 1, 11),
+        )
+
+        task2 = Task(
+            task_id="2",
+            task_start=datetime(2026, 1, 1, 11),
+            task_stop=datetime(2026, 1, 1, 12),
+        )
+
+        assert tasks_overlap(task1, task2) is False
+
+    def test_tasks_overlap_returns_true_when_second_is_inside_first(self) -> None:
+        task1 = Task(
+            task_id="1",
+            task_start=datetime(2026, 1, 1, 10),
+            task_stop=datetime(2026, 1, 1, 14),
+        )
+
+        task2 = Task(
+            task_id="2",
+            task_start=datetime(2026, 1, 1, 11),
+            task_stop=datetime(2026, 1, 1, 12),
+        )
+
+        assert tasks_overlap(task1, task2) is True
+
+    def test_tasks_overlap_is_symmetric(self) -> None:
+        task1 = Task(
+            task_id="1",
+            task_start=datetime(2026, 1, 1, 10),
+            task_stop=datetime(2026, 1, 1, 14),
+        )
+
+        task2 = Task(
+            task_id="2",
+            task_start=datetime(2026, 1, 1, 11),
+            task_stop=datetime(2026, 1, 1, 12),
+        )
+
+        assert tasks_overlap(task1, task2) == tasks_overlap(task2, task1)

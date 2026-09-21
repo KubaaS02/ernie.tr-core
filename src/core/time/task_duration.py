@@ -119,7 +119,8 @@ def get_task_time_duration(
     if start.date() != stop.date() and duration_raw < 0:
         pass
 
-    duration_minutes = round(duration_raw)
+    from math import ceil
+    duration_minutes = ceil(duration_raw)
 
     return max(duration_minutes, 1)
 

@@ -1,9 +1,11 @@
 import pytest
-from datetime import datetime
+from datetime import datetime, timedelta
+
+from core.time.task_duration import get_converted_time_duration
 from tests import get_task_time_duration, get_tasks_time_one_day, get_tasks_time_one_month
 from tests import Task
-from typing import Tuple
 from exceptions.time_errors import InvalidTaskTimeRangeError
+
 class TestCalculateTaskDuration:
     """Testy obliczania czasu trwania tasku"""
     
@@ -50,14 +52,30 @@ class TestCalculateTaskDuration:
             "2025-11-01 09:01:30"
         )
         assert result == 2
+
+    def test_task_with_seconds_180_seconds(self) -> None:
+        """Test tasku z sekundami - 180 sekund (zaokrągli do 3 minut)"""
+        result: int = get_task_time_duration(
+            "2025-11-01 09:00:00",
+            "2025-11-01 09:02:30"
+        )
+        assert result == 3
     
-    def test_task_with_seconds_and_minutes(self) -> None:
+    def test_task_with_seconds_and_minutes_even(self) -> None:
         """Test tasku z minutami i sekundami"""
         result: int = get_task_time_duration(
             "2025-11-01 10:00:00",
             "2025-11-01 10:05:30"
         )
         assert result == 6  # 5.5 minut zaokrąglone w górę
+
+    def test_task_with_seconds_and_minutes_odd(self) -> None:
+        """Test tasku z minutami i sekundami"""
+        result: int = get_task_time_duration(
+            "2025-11-01 10:00:00",
+            "2025-11-01 10:06:30"
+        )
+        assert result == 7  # 6.5 minut zaokrąglone w górę
     
     # ============ TESTY PRZEJŚCIA PRZEZ PÓŁNOC ============
     
@@ -208,3 +226,256 @@ class TestCalculateTaskDuration:
         total_min,total_hm = get_tasks_time_one_month(tasks, datetime(2025, 11, 1))
         assert total_min == 219
         assert total_hm == '03:39'
+
+    def test_tasks_time_one_month_includes_last_day(self):
+        tasks = [
+            Task(
+                task_id="1",
+                task_start=datetime(2025, 11, 30, 10, 0),
+                task_stop=datetime(2025, 11, 30, 11, 0),
+            )
+        ]
+
+        total_min, total_hm = get_tasks_time_one_month(
+            tasks,
+            datetime(2025, 11, 1),
+        )
+
+        assert total_min == 60
+        assert total_hm == "01:00"
+
+    ## This set of tests is also ok
+    @pytest.mark.parametrize(
+        ("seconds", "expected_minutes"),
+        [
+            (0, 1),
+            (1, 1),
+            (29, 1),
+            (30, 1),
+            (59, 1),
+            (60, 1),
+            (61, 2),
+            (89, 2),
+            (90, 2),
+            (119, 2),
+            (120, 2),
+            (121, 3),
+            (150, 3),
+            (179, 3),
+            (180, 3),
+        ],
+    )
+    def test_task_duration_rounding_boundaries(
+            self,
+            seconds: int,
+            expected_minutes: int,
+    ) -> None:
+        start = datetime(2025, 11, 1, 10)
+        stop = start + timedelta(seconds=seconds)
+
+        assert get_task_time_duration(start, stop) == expected_minutes
+
+    # Multiday
+    def test_task_duration_can_span_multiple_days(self) -> None:
+        assert get_task_time_duration(
+            datetime(2025, 11, 1, 10),
+            datetime(2025, 11, 3, 10),
+        ) == 2880
+
+    # Leap year
+    def test_task_duration_across_leap_day(self) -> None:
+        assert get_task_time_duration(
+            datetime(2024, 2, 28, 23),
+            datetime(2024, 2, 29, 1),
+        ) == 120
+
+    # Other edge-cases
+    @pytest.mark.parametrize(
+        "invalid_value",
+        [
+            None,
+            123,
+            1.5,
+            [],
+            {},
+            object(),
+        ],
+    )
+    def test_task_duration_rejects_invalid_start_type(self, invalid_value) -> None:
+        with pytest.raises(TypeError):
+            get_task_time_duration(
+                invalid_value,
+                "2025-11-01 12:00",
+            )
+
+    @pytest.mark.parametrize(
+        "invalid_value",
+        [
+            "",
+            "2025",
+            "01-11-2025",
+            "01-11-2025 10:00",
+            "2025/11/01 10:00",
+            "10:00",
+            "hello",
+        ],
+    )
+    def test_task_duration_rejects_invalid_datetime_format(
+            self,
+            invalid_value: str,
+    ) -> None:
+        with pytest.raises(ValueError):
+            get_task_time_duration(
+                invalid_value,
+                "2025-11-01 12:00",
+            )
+
+    # I didnt find any tests for get_converted_time_duration() function, so I made some
+    @pytest.mark.parametrize(
+        ("duration", "expected"),
+        [
+            (0, "00:00"),
+            (1, "00:01"),
+            (59, "00:59"),
+            (60, "01:00"),
+            (61, "01:01"),
+            (119, "01:59"),
+            (120, "02:00"),
+            (1440, "24:00"),
+            (1501, "25:01"),
+        ],
+    )
+    def test_get_converted_time_duration(
+            self,
+            duration: int,
+            expected: str,
+    ) -> None:
+        assert get_converted_time_duration(duration) == expected
+
+    @pytest.mark.parametrize(
+        "invalid_value",
+        [
+            -1,
+            -60,
+            -1000,
+        ],
+    )
+    def test_get_converted_time_duration_rejects_negative_values(
+            self,
+            invalid_value: int,
+    ) -> None:
+        with pytest.raises(ValueError):
+            get_converted_time_duration(invalid_value)
+
+    @pytest.mark.parametrize(
+        "invalid_value",
+        [
+            "60",
+            60.0,
+            None,
+            [],
+            {},
+        ],
+    )
+    def test_get_converted_time_duration_rejects_non_integer_values(
+            self,
+            invalid_value,
+    ) -> None:
+        with pytest.raises(TypeError):
+            get_converted_time_duration(invalid_value)
+
+    def test_get_tasks_time_one_day_returns_zero_for_empty_list(self) -> None:
+        assert get_tasks_time_one_day(
+            [],
+            datetime(2025, 11, 1),
+        ) == (0, "00:00")
+
+    def test_get_tasks_time_one_day_ignores_tasks_from_other_days(self) -> None:
+        tasks = [
+            Task(
+                task_id="1",
+                task_start=datetime(2025, 11, 1, 10),
+                task_stop=datetime(2025, 11, 1, 11),
+            ),
+            Task(
+                task_id="2",
+                task_start=datetime(2025, 11, 2, 10),
+                task_stop=datetime(2025, 11, 2, 12),
+            ),
+        ]
+
+        assert get_tasks_time_one_day(
+            tasks,
+            datetime(2025, 11, 1),
+        ) == (60, "01:00")
+
+    def test_get_tasks_time_one_day_sums_multiple_tasks(self) -> None:
+        tasks = [
+            Task(
+                task_id="1",
+                task_start=datetime(2025, 11, 1, 10),
+                task_stop=datetime(2025, 11, 1, 11),
+            ),
+            Task(
+                task_id="2",
+                task_start=datetime(2025, 11, 1, 12),
+                task_stop=datetime(2025, 11, 1, 13, 30),
+            ),
+        ]
+
+        assert get_tasks_time_one_day(
+            tasks,
+            datetime(2025, 11, 1),
+        ) == (150, "02:30")
+
+    def test_get_tasks_time_one_month_includes_31st_day(self) -> None:
+        tasks = [
+            Task(
+                task_id="1",
+                task_start=datetime(2025, 1, 31, 10),
+                task_stop=datetime(2025, 1, 31, 11),
+            )
+        ]
+
+        assert get_tasks_time_one_month(
+            tasks,
+            datetime(2025, 1, 1),
+        ) == (60, "01:00")
+
+    def test_get_tasks_time_one_month_includes_leap_day(self) -> None:
+        tasks = [
+            Task(
+                task_id="1",
+                task_start=datetime(2024, 2, 29, 10),
+                task_stop=datetime(2024, 2, 29, 11),
+            )
+        ]
+
+        assert get_tasks_time_one_month(
+            tasks,
+            datetime(2024, 2, 1),
+        ) == (60, "01:00")
+
+    def test_get_tasks_time_one_month_ignores_other_months_and_years(self) -> None:
+        tasks = [
+            Task(
+                task_id="november",
+                task_start=datetime(2025, 11, 10, 10),
+                task_stop=datetime(2025, 11, 10, 11),
+            ),
+            Task(
+                task_id="december",
+                task_start=datetime(2025, 12, 10, 10),
+                task_stop=datetime(2025, 12, 10, 14),
+            ),
+            Task(
+                task_id="other-year",
+                task_start=datetime(2024, 11, 10, 10),
+                task_stop=datetime(2024, 11, 10, 15),
+            ),
+        ]
+
+        assert get_tasks_time_one_month(
+            tasks,
+            datetime(2025, 11, 1),
+        ) == (60, "01:00")
