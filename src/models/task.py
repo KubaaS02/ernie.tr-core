@@ -16,6 +16,7 @@ class Task:
         task_stop: Data i czas zakończenia pracy (format: YYYY-MM-DD HH:MM lub HH:MM:SS)
         comment: Opis/nazwa projektu
         status: Status płatności (Zapłacone, Oczekuje, W trakcie)
+        diff_status: Określenie statusu dla rożnicy pomiędzy wartością faktyczną a szacunkową (Positive, Negative, Zero, Pending)
         payment_date: Data faktycznej płatności (opcjonalnie)
         exchange_rate_eur: Kurs euro
         duration_min: Czas trwania taska
@@ -32,6 +33,7 @@ class Task:
         updated_at: Data zaaktualizowania taska
         is_locked: Informacja, czy task jest zablokowany, czy nie
         diff: Różnica pieniężna taska
+        
     """
 
     task_start: datetime
