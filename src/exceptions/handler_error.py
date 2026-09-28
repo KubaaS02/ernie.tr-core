@@ -20,6 +20,8 @@ class BusinessError(Exception):
         super().__init_subclass__()
         if getattr(cls, "abstract", False):
             return
+        # if cls.__dict__.get("abstract", False):
+        #     return
         cls.abstract = False
         if not hasattr(cls, "error_id") or cls.error_id == "ERR-GENERIC":
             raise TypeError(

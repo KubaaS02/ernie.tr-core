@@ -13,7 +13,7 @@ class InvalidExchangeRateError(BusinessError):
     http_status: Optional[int] = 422
     default_message: Optional[str] = "The exchange rate is incorrect, <=0"
 
-class InvalidHourdlyRateError(BusinessError):
+class InvalidHourlyRateError(BusinessError):
     """Klasa błędu, który powinien zostać wywołany, gdy stawka godzinowa będzie nieodpowiednia, tzn <=0"""
     
     error_id: Optional[str] = "ERR-FIN-02"
