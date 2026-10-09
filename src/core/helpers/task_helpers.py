@@ -1,6 +1,6 @@
-from src.models.task import Task
-from src.exceptions.authorization_errors import TaskLockedError
-from src.exceptions.time_errors import TaskOverlapError
+from models.task import Task
+from exceptions.authorization_errors import TaskLockedError
+from exceptions.time_errors import TaskOverlapError
 
 
 def check_is_locked(task: Task) -> None:
