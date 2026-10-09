@@ -1,4 +1,4 @@
-from exceptions.handler_error import BusinessError
+from exceptions import BusinessError
 from typing import Optional
 
 """Błędy spójności danych wejściowych, np. brak wymaganych pól do wykonania kalkulacji."""
