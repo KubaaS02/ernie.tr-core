@@ -1,7 +1,7 @@
 from models.task import Task
 from models.day import day
 import requests
-from exceptions.finance_errors import InvalidHourdlyRateError, InvalidExchangeRateError
+from exceptions.finance_errors import InvalidHourlyRateError, InvalidExchangeRateError
 from exceptions.data_errors import MissingCalculationDataError
 from datetime import datetime
 from typing import Literal, List, Tuple, Optional
@@ -36,7 +36,7 @@ def get_approx_cost_pln(task: Task, rate_pln_per_h: float) -> float:
     rate = task.rate_pln_per_h if task.rate_pln_per_h is not None else rate_pln_per_h
 
     if rate <= 0.0:
-        raise InvalidHourdlyRateError(
+        raise InvalidHourlyRateError(
             details={
                 "hourly_rate": rate
             }
