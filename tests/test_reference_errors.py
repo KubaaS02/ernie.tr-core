@@ -1,9 +1,11 @@
 import pytest
 from tests import BusinessError, ProjectInUseError, EntityNotFoundError
 
+# Testy związane z grupą błędów referencji projektów
+
 
 class TestProjectInUseError:
-    """Testy związane z grupą błędów referencji projektów"""
+    """Testy związane z przechwyceniem wyjątku błędu, gdy dany projekt jest już w użyciu"""
 
     def test_ProjectInUseError_error_id(self) -> None:
         """Sprawdzenie, czy klasa ma poprawne ERROR_ID = ERR-REF-01"""
@@ -51,7 +53,10 @@ class TestProjectInUseError:
         assert result["http_status"] == 409
         assert result["message"] == ProjectInUseError.default_message
         assert result["details"] == details
-# testy EntityNotFoundError
+
+
+class TestEntityNotFoundError:
+    """Testy zwaiązane z przechwyceniem wyjątku błędu, gdy nie można znaleźć odpowiedniego ID """
 
     def test_EntityNotFoundError_error_id(self) -> None:
         """Sprawdzenie, czy klasa ma poprawne ERROR_ID = ERR-REF-02"""
