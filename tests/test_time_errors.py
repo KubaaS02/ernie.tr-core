@@ -1,5 +1,4 @@
 import pytest
-
 from core.helpers.task_helpers import check_overlap, tasks_overlap
 from tests import BusinessError, InvalidTaskTimeRangeError, TaskOverlapError, Task
 from datetime import datetime
@@ -90,32 +89,6 @@ class TestInvalidTaskTimeRangeError:
         assert result["message"] == TaskOverlapError.default_message
         assert result["details"] == details
 
-    ## Not right
-    def test_TaskOverlapError_raise(self):
-        """Sprawdzenie, czy TaskOverlapError zostanie rzucony przy nakładaniu się zakresów czasu"""
-        task1 = Task(
-            task_id="task1",
-            task_start=datetime(2026, 1, 1, 10, 0),
-            task_stop=datetime(2026, 1, 1, 12, 0)
-        )
-
-        task2 = Task(
-            task_id="task2",
-            task_start=datetime(2026, 1, 1, 11, 0),
-            task_stop=datetime(2026, 1, 1, 13, 0)
-        )
-
-        def check_overlap(t1: Task, t2: Task) -> None:
-            if t1.task_start < t2.task_stop and t2.task_start < t2.task_stop:
-                raise TaskOverlapError(
-                    details={"conflicting_task_id": t2.task_id,
-                             "range": f"{t2.task_start.strftime('%H:%M')} - {t2.task_stop.strftime('%H:%M')}"
-                             }
-                )
-            with pytest.raises(TaskOverlapError):
-                check_overlap(task1, task2)
-
-    ## Right, when exception is raised
     def test_TaskOverlapError_raise_wexception(self):
         """Sprawdzenie, czy TaskOverlapError zostanie rzucony przy nakładaniu się zakresów czasu"""
         task1 = Task(
@@ -133,8 +106,6 @@ class TestInvalidTaskTimeRangeError:
         with pytest.raises(TaskOverlapError):
             check_overlap(task1, task2)
 
-    ## 100% right tests with another prod function that checks overlaps but does not raise exception when overlap
-    ## is found
     def test_tasks_overlap_returns_true_for_overlapping_tasks(self) -> None:
         task1 = Task(
             task_id="task1",
