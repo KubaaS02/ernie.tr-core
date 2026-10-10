@@ -1,5 +1,4 @@
 import pytest
-
 from exceptions.finance_errors import InvalidHourlyRateError
 from tests import Task
 from tests import get_approx_cost_pln, get_approx_cost_from_pln_to_euro, get_actual_cost_pln, get_actual_cost_euro_from_pln
@@ -31,15 +30,6 @@ class TestCalculateTaskSalary:
         result: float = get_approx_cost_pln(task, rate_pln_per_h=120)
         assert result == 240.0  # 240 zł
 
-    ## This doesnt seem right
-    def test_test_approx_cost_pln_is0(self) -> None:
-        """Test, czy funkcja pokaże błąd, gdy stawka godzinowa wynosi 0"""
-        task = Task(task_id="1", task_start=datetime(2025, 11, 1, 9, 0),
-                    task_stop=datetime(2025, 11, 1, 11, ), rate_pln_per_h=0)
-        with pytest.raises(InvalidHourlyRateError):
-            get_approx_cost_pln(task, rate_pln_per_h=0)
-
-    ## I would write it this way
     def test_get_approx_cost_pln_raises_for_zero_hourly_rate(self) -> None:
         task = Task(
             task_id="1",
@@ -53,7 +43,6 @@ class TestCalculateTaskSalary:
 
         assert exc_info.value.details["hourly_rate"] == 0
 
-    ## And right after, which should be sufficient
     def test_get_approx_cost_pln_raises_for_negative_hourly_rate(self) -> None:
         task = Task(
             task_id="1",
@@ -175,7 +164,7 @@ class TestGetActualCostPln:
         with pytest.raises(ValueError):
             get_actual_cost_pln(task, 102.00, datetime(2025, 11, 20))
 
-    ## Additional tests
+    # Additional tests
 
     def test_get_actual_cost_pln_rounds_input_to_two_decimal_places(self) -> None:
         task = _make_task(cost_approx_pln=100)
@@ -243,7 +232,7 @@ class TestGetActualCostEuroFromPln:
         with pytest.raises(TypeError):
             get_actual_cost_euro_from_pln(102.00, "4.22")
 
-    ## Additional tests PLN -> EUR
+    # Additional tests PLN -> EUR
 
     def test_get_approx_cost_from_pln_to_euro_raises_when_cost_is_missing(self) -> None:
         task = Task(
@@ -279,8 +268,6 @@ class TestGetActualCostEuroFromPln:
 
         with pytest.raises(InvalidExchangeRateError):
             get_approx_cost_from_pln_to_euro(task)
-
-
 
     @pytest.mark.parametrize(
         "cost_actual_pln",
