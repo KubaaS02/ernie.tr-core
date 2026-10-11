@@ -1,4 +1,3 @@
-
 import pytest
 from datetime import datetime, timezone
 from tests import ChangeLogEntry, IncompleteChangeLogEntryError
@@ -27,9 +26,13 @@ class TestChangeLogEntryValid:
         assert entry.reason == "Klient skorygował kwotę wypłaty"
 
     def test_ChangeLogEntry_delete(self) -> None:
-        """Sprawdzenie, czy wpis delete zostanie utworzony bez pól zmiany"""
+        """Sprawdzenie, czy wpis delete zostanie utworzony bez pól zmiany i uzasadnienia"""
         entry = ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, "delete")
         assert entry.action == "delete"
+        assert entry.field is None
+        assert entry.old_value is None
+        assert entry.new_value is None
+        assert entry.reason is None
 
     def test_ChangeLogEntry_field_change_complete(self) -> None:
         """Sprawdzenie, czy kompletny wpis field_change zostanie utworzony"""
@@ -41,42 +44,42 @@ class TestChangeLogEntryValid:
         assert entry.old_value == "450.00"
         assert entry.new_value == "480.00"
 
-    def test_ChangeLogEntry_types(self) -> None:
-        """Sprawdzenie, czy pola mają poprawne typy po utworzeniu"""
+    def test_ChangeLogEntry_stores_base_data(self) -> None:
+        """Sprawdzenie, czy wpis przechowuje task_id, user_id i timestamp"""
         entry = ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, "unlock")
-        assert isinstance(entry.task_id, str)
-        assert isinstance(entry.user_id, str)
-        assert isinstance(entry.timestamp, datetime)
+        assert entry.task_id == TASK_ID
+        assert entry.user_id == USER_ID
+        assert entry.timestamp == TIMESTAMP
 
 
 class TestChangeLogEntryFieldChangeMissing:
     """Testy wpisów field_change z brakującymi polami"""
 
-    def test_ChangeLogEntry_field_change_missing_field(self) -> None:
-        """Sprawdzenie, czy wyrzuci błąd, gdy brakuje field"""
+    @pytest.mark.parametrize(
+        ("kwargs", "expected_missing"),
+        [
+            ({"old_value": "450.00", "new_value": "480.00"}, ["field"]),
+            ({"field": "cost_actual_pln",
+             "new_value": "480.00"}, ["old_value"]),
+            ({"field": "cost_actual_pln",
+             "old_value": "450.00"}, ["new_value"]),
+        ]
+    )
+    def test_ChangeLogEntry_field_change_missing_one_field(
+            self,
+            kwargs: dict,
+            expected_missing: list[str],
+    ) -> None:
+        """Sprawdzenie, czy wyrzuci błąd, gdy brakuje jednego z pól zmiany"""
         with pytest.raises(IncompleteChangeLogEntryError) as exc_info:
-            ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, "field_change",
-                           old_value="450.00", new_value="480.00")
-        assert exc_info.value.details["missing_fields"] == ["field"]
-
-    def test_ChangeLogEntry_field_change_missing_old_value(self) -> None:
-        """Sprawdzenie, czy wyrzuci błąd, gdy brakuje old_value"""
-        with pytest.raises(IncompleteChangeLogEntryError) as exc_info:
-            ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, "field_change",
-                           field="cost_actual_pln", new_value="480.00")
-        assert exc_info.value.details["missing_fields"] == ["old_value"]
-
-    def test_ChangeLogEntry_field_change_missing_new_value(self) -> None:
-        """Sprawdzenie, czy wyrzuci błąd, gdy brakuje new_value"""
-        with pytest.raises(IncompleteChangeLogEntryError) as exc_info:
-            ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, "field_change",
-                           field="cost_actual_pln", old_value="450.00")
-        assert exc_info.value.details["missing_fields"] == ["new_value"]
+            ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP,
+                           "field_change", **kwargs)
+        assert exc_info.value.details["missing_fields"] == expected_missing
 
     def test_ChangeLogEntry_field_change_missing_all(self) -> None:
         """Sprawdzenie, czy details zawiera wszystkie trzy brakujące pola w stałej kolejności"""
         with pytest.raises(IncompleteChangeLogEntryError) as exc_info:
-            ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, "field_change")
+            ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, action="field_change")
         assert exc_info.value.details == {
             "task_id": TASK_ID,
             "action": "field_change",
