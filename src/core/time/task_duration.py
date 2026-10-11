@@ -1,8 +1,7 @@
 from datetime import datetime, time, date
 from typing import Union, List, Tuple
 from core.time.helpers.time import month_days
-from exceptions import InvalidTaskTimeRangeError
-# from models.task import Task
+from exceptions.time_errors import InvalidTaskTimeRangeError
 
 
 def _to_minutes_from_midnight(dt: datetime) -> int:
@@ -215,7 +214,7 @@ def get_tasks_time_one_month(tasks: List, month: datetime) -> Tuple[int, str]:
     """
     days_in_month = month_days(month)
     total_min_month = 0
-    for day in range(1, days_in_month, 1):
+    for day in range(1, days_in_month + 1):
         day_min, day_hm = get_tasks_time_one_day(
             tasks, datetime(month.year, month.month, day))
         total_min_month += day_min
