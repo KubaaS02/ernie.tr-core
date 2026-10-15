@@ -1,20 +1,13 @@
 import pytest
 from tests import BusinessError
 
-## This test is wrong, definitely dont check if it is registered correctly
-def test_valid_subclass_registers_successfuly() -> None:
-    """Podklasa z unikalnym error_id powinna zarejestrować się bez błędu"""
-    class SomeError(BusinessError):
-        error_id = "ERR-SOME-UNIQUE"
 
-    assert isinstance(SomeError(), BusinessError)
-
-## This test is right
 def test_valid_subclass_registers_successfully() -> None:
     class SomeError(BusinessError):
         error_id = "ERR-TEST-REGISTER-01"
 
-    assert "ERR-TEST-REGISTER-01" in BusinessError._registered_ids
+    assert "ERR-TEST-REGISTER-01" in SomeError._registered_ids
+
 
 def test_abstract_subclass_skips_validation() -> None:
     """Podklasa z abstract=True powinna się tworzyć bez error_id"""
@@ -59,16 +52,7 @@ def test_default_message_used_when_none_passed() -> None:
 
     assert SomeError().message == SomeError.default_message
 
-## This error is not correct, especially assert part
-def test_custom_message_overrides_default():
-    """Podany message powinien nadpisać default_message"""
-    class SomeError(BusinessError):
-        abstract = False
-        error_id = "ERR-SOME-UNIQUE1"
 
-    assert SomeError("Nieznany error").message != SomeError.default_message
-
-## This tests it better
 def test_custom_message_overrides_default_message() -> None:
     class SomeError(BusinessError):
         error_id = "ERR-SOME-UNIQUE1"
@@ -78,9 +62,8 @@ def test_custom_message_overrides_default_message() -> None:
     assert error.message == "Nieznany error"
 
 
-## Name of the test suggests to_dict conversion, where is it?
-def test_to_dict_contains_required_keys() -> None:
-    """Wynik to_dict musi zawierać: error_code, http_status, message, details"""
+def test_to_json_contains_required_keys() -> None:
+    """Wynik to_json musi zawierać: error_code, http_status, message, details"""
     class SomeError(BusinessError):
         abstract = False
         error_id = "SOME-ERR"
@@ -92,7 +75,7 @@ def test_to_dict_contains_required_keys() -> None:
     assert "message" in result
     assert "details" in result
 
-## I suggest to add this as well
+
 def test_to_json_returns_complete_error_payload() -> None:
     class SomeError(BusinessError):
         error_id = "ERR-TEST-JSON-01"
@@ -111,7 +94,7 @@ def test_to_json_returns_complete_error_payload() -> None:
         },
     }
 
-## I would also add additional ones for BusinessError specific
+
 def test_details_default_to_empty_dict() -> None:
     class SomeError(BusinessError):
         error_id = "ERR-TEST-DETAILS-01"
@@ -119,6 +102,7 @@ def test_details_default_to_empty_dict() -> None:
     error = SomeError()
 
     assert error.details == {}
+
 
 def test_details_are_preserved() -> None:
     class SomeError(BusinessError):
@@ -133,6 +117,7 @@ def test_details_are_preserved() -> None:
 
     assert error.details == details
 
+
 def test_custom_error_code_overrides_class_error_code() -> None:
     class SomeError(BusinessError):
         error_id = "ERR-TEST-CODE-01"
@@ -141,6 +126,7 @@ def test_custom_error_code_overrides_class_error_code() -> None:
     error = SomeError(error_code="custom_code")
 
     assert error.error_code == "custom_code"
+
 
 def test_exception_str_contains_message() -> None:
     class SomeError(BusinessError):
