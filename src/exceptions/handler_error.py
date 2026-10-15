@@ -1,6 +1,7 @@
 
 from typing import Optional
 
+
 class BusinessError(Exception):
     """
     Abstrakcyjna klasa bazowa dla wszystkich błędów domenowych Ernie.tr.
@@ -18,10 +19,8 @@ class BusinessError(Exception):
 
     def __init_subclass__(cls) -> None:
         super().__init_subclass__()
-        if getattr(cls, "abstract", False):
+        if cls.__dict__.get("abstract", False):
             return
-        # if cls.__dict__.get("abstract", False):
-        #     return
         cls.abstract = False
         if not hasattr(cls, "error_id") or cls.error_id == "ERR-GENERIC":
             raise TypeError(
