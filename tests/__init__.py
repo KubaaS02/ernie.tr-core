@@ -29,3 +29,4 @@ from exceptions.data_errors import MissingCalculationDataError
 from exceptions.integration_errors import NbpApiUnavailableError
 from exceptions.generic_errors import GenericSystemError
 from exceptions.data_errors import IncompleteChangeLogEntryError
+from helper.enums import ChangeLogActions
