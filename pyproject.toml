@@ -32,7 +32,7 @@ pretty = true
 show_error_codes = true
 warn_unused_ignores = true
 
-[tools.poethepoet.tasks]
+[tool.poe.tasks]
 test = "pytest tests"
 
 [dependency-groups]
