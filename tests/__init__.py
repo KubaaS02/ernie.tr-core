@@ -30,3 +30,34 @@ from exceptions.integration_errors import NbpApiUnavailableError
 from exceptions.generic_errors import GenericSystemError
 from exceptions.data_errors import IncompleteChangeLogEntryError
 from helper.enums import ChangeLogActions
+from helper.text import is_blank
+
+# Puste wartości do testów
+BLANK_VALUES: list[str] = [
+    "",
+    " ",
+    "   ",
+    "\t",
+    "\n",
+    "\r\n",
+    "\u00a0",
+    "\u3000",
+    "\u200b",
+    " \t\u200b ",
+]
+BLANK_IDS: list[str] = [
+    "empty",
+    "space",
+    "three_spaces",
+    "tab",
+    "newline",
+    "crlf",
+    "nbsp",
+    "ideographic_space",
+    "zero_width_space",
+    "mixed",
+]
+
+# Białe znaki
+WHITESPACE_VALUES: list[str] = BLANK_VALUES[1:]
+WHITESPACE_IDS: list[str] = BLANK_IDS[1:]
