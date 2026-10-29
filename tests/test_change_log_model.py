@@ -1,6 +1,14 @@
 import pytest
 from datetime import datetime, timezone
-from tests import ChangeLogEntry, IncompleteChangeLogEntryError, ChangeLogActions
+from tests import (
+    ChangeLogEntry,
+    IncompleteChangeLogEntryError,
+    ChangeLogActions,
+    BLANK_IDS,
+    BLANK_VALUES,
+    WHITESPACE_IDS,
+    WHITESPACE_VALUES,
+)
 
 TASK_ID = "7f3a1c2e-0b4d-4a91-9c88-1e2f3a4b5c6d"
 USER_ID = "1a2b3c4d-5e6f-4071-8293-a4b5c6d7e8f9"
@@ -61,7 +69,7 @@ class TestChangeLogEntryTypes:
             ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, "invalid_action") # type: ignore[arg-type]
 
     def test_string_action_is_normalized_to_enum(self) -> None:
-        """Sprawdzenie, czy action podany jako str zamienia się na enum"""
+        """Sprawdzenie, czy action podany jako str. zamienia się na enum"""
         entry = ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, "unlock")  # type: ignore[arg-type]
         assert entry.action is ChangeLogActions.unlock
 
@@ -84,7 +92,7 @@ class TestChangeLogEntryTypes:
             kwargs: dict[str, object],
             bad_field: str,
     ) -> None:
-        """Sprawdzenie, czy wartość inna niż str w polach zmiany jest odrzucana"""
+        """Sprawdzenie, czy wartość inna niż str. w polach zmiany jest odrzucana"""
         with pytest.raises(TypeError, match=bad_field):
             ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP,
                            ChangeLogActions.field_change, **kwargs)  # type: ignore[arg-type]
@@ -193,3 +201,63 @@ class TestChangeLogEntryEdgeCases:
         entry = ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, ChangeLogActions.unlock,
                                reason="Klient skorygował kwotę wypłaty")
         assert "Klient skorygował" not in repr(entry)
+
+
+def _field_change_entry(
+        field: str | None = "cost_actual_pln",
+        old_value: str | None = "450.00",
+        new_value: str | None = "480.00",
+) -> ChangeLogEntry:
+    """Tworzy wpis field_change; argumenty nadpisują poprawne wartości domyślne"""
+    return ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, ChangeLogActions.field_change,
+                          field=field, old_value=old_value, new_value=new_value)
+
+
+class TestChangeLogEntryBlankValues:
+    """Testy pustych wartości i białych znaków w polach zmiany"""
+
+    @pytest.mark.parametrize("blank", BLANK_VALUES, ids=BLANK_IDS)
+    def test_change_log_entry_blank_field_raises_error(self, blank: str) -> None:
+        """Sprawdzenie, czy pusta nazwa pola lub same białe znaki są odrzucane"""
+        with pytest.raises(IncompleteChangeLogEntryError) as exc_info:
+            _field_change_entry(field=blank)
+        assert exc_info.value.details["missing_fields"] == ["field"]
+
+    @pytest.mark.parametrize("blank", WHITESPACE_VALUES, ids=WHITESPACE_IDS)
+    def test_change_log_entry_whitespace_new_value_for_comment_raises_error(
+            self,
+            blank: str,
+    ) -> None:
+        """Sprawdzenie, czy same białe znaki w new_value są odrzucane także dla comment"""
+        with pytest.raises(IncompleteChangeLogEntryError) as exc_info:
+            _field_change_entry(field="comment", old_value="Projekt 1", new_value=blank)
+        assert exc_info.value.details["missing_fields"] == ["new_value"]
+
+    def test_change_log_entry_empty_new_value_for_other_field_raises_error(self) -> None:
+        """Sprawdzenie, czy new_value = "" jest odrzucane dla pola spoza CLEARABLE_FIELDS"""
+        with pytest.raises(IncompleteChangeLogEntryError) as exc_info:
+            _field_change_entry(field="cost_actual_pln", new_value="")
+        assert exc_info.value.details["missing_fields"] == ["new_value"]
+
+    def test_change_log_entry_blank_field_and_new_value(self) -> None:
+        """Sprawdzenie, czy oba puste pola są zgłaszane w stałej kolejności"""
+        with pytest.raises(IncompleteChangeLogEntryError) as exc_info:
+            _field_change_entry(field=" ", new_value="")
+        assert exc_info.value.details["missing_fields"] == ["field", "new_value"]
+
+    def test_change_log_entry_none_field_and_whitespace_new_value(self) -> None:
+        """Sprawdzenie, czy None i same białe znaki trafiają do jednej listy missing_fields"""
+        with pytest.raises(IncompleteChangeLogEntryError) as exc_info:
+            _field_change_entry(field=None, new_value="   ")
+        assert exc_info.value.details["missing_fields"] == ["field", "new_value"]
+
+    @pytest.mark.parametrize("blank", BLANK_VALUES, ids=BLANK_IDS)
+    def test_change_log_entry_blank_old_value_is_valid(self, blank: str) -> None:
+        """Sprawdzenie, czy pusty old_value lub same białe znaki są akceptowane (stan z przeszłości)"""
+        entry = _field_change_entry(field="comment", old_value=blank, new_value="Projekt 1")
+        assert entry.old_value == blank
+
+    def test_change_log_entry_new_value_is_stored_unchanged(self) -> None:
+        """Sprawdzenie, czy model nie obcina białych znaków wokół treści"""
+        entry = _field_change_entry(field="comment", old_value="", new_value="  Nowy opis ")
+        assert entry.new_value == "  Nowy opis "
