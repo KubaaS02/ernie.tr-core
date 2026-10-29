@@ -4,6 +4,9 @@ from dataclasses import dataclass
 from typing import Optional
 from exceptions.data_errors import IncompleteChangeLogEntryError
 from helper.enums import ChangeLogActions
+from helper.text import is_blank
+
+CLEARABLE_FIELDS: frozenset[str] = frozenset({"comment"})
 
 
 @dataclass
@@ -23,10 +26,13 @@ class ChangeLogEntry:
 
     Raises:
         TypeError: Gdy timestamp nie jest obiektem datetime albo gdy field,
-            old_value lub new_value nie jest str ani None
+            old_value lub new_value nie jest str. ani None
         ValueError: Gdy action nie jest jedną z wartości ChangeLogActions
-        IncompleteChangeLogEntryError: Gdy action = field_change, a brakuje
-            field, old_value lub new_value
+        IncompleteChangeLogEntryError: Gdy action = field_change oraz:
+            - brakuje field, old_value lub new_value (None),
+            - field jest pusty lub składa się z samych białych znaków,
+            - new_value składa się z samych białych znaków,
+            - new_value = "" dla pola spoza CLEARABLE_FIELDS
     """
 
     task_id: str
@@ -55,12 +61,9 @@ class ChangeLogEntry:
                 raise TypeError(
                     f"{name} must be str or None, got {type(value).__name__}"
                 )
-
-        filled = [name for name in change_fields
-                  if getattr(self, name) is not None]
-
         if self.action is ChangeLogActions.field_change:
-            missing = [name for name in change_fields if name not in filled]
+            missing = [name for name in change_fields
+                       if self._is_missing(name)]
             if missing:
                 raise IncompleteChangeLogEntryError(
                     details={
@@ -70,7 +73,36 @@ class ChangeLogEntry:
                     }
                 )
 
-    def __repr__(self) -> str:
+    def _is_missing(self, name: str) -> bool:
+        """
+        Sprawdza, czy pole zmiany nie niesie wymaganych danych.
+
+        Reguły dla poszczególnych pól:
+            - field: brak, gdy None albo pusty / same białe znaki
+            - old_value: brak tylko, gdy None (zapis stanu z przeszłości)
+            - new_value: brak, gdy None albo pusty / same białe znaki;
+              wyjątek: "" dla pól z CLEARABLE_FIELDS oznacza wyczyszczenie pola
+
+        Args:
+            name: Nazwa pola zmiany ("field", "old_value" lub "new_value")
+
+        Returns:
+            True, gdy pole należy zgłosić jako brakujące, w przeciwnym razie False
+        """
+        value = getattr(self, name)
+        if value is None:
+            return True
+
+        if name == "field":
+            return is_blank(value)
+
+        if name == "new_value":
+            is_cleared = value == "" and self.field in CLEARABLE_FIELDS
+            return is_blank(value) and not is_cleared
+
+        return False
+
+    def __repr__(self) -> str: #powinna jescze reprezentowac nowa wartosc
         return (
             f"ChangeLogEntry(task_id={self.task_id}, action={self.action}, "
             f"timestamp={self.timestamp})"
