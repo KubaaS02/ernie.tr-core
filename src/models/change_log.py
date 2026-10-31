@@ -8,6 +8,17 @@ from helper.text import is_blank
 
 CLEARABLE_FIELDS: frozenset[str] = frozenset({"comment"})
 
+# Fields whose values must not appear in logs or error reports (4.0.3)
+RESTRICTED_FIELDS: frozenset[str] = frozenset({
+    "comment",
+    "cost_approx_pln",
+    "cost_approx_eur",
+    "cost_actual_pln",
+    "cost_actual_eur",
+    "rate_pln_per_h",
+    "diff",
+})
+
 
 @dataclass
 class ChangeLogEntry:
@@ -102,8 +113,14 @@ class ChangeLogEntry:
 
         return False
 
-    def __repr__(self) -> str: #powinna jescze reprezentowac nowa wartosc
+    def __repr__(self) -> str:
+        if self.field in RESTRICTED_FIELDS:
+            new_value = "<Restricted field representation>"
+        else:
+            new_value = repr(self.new_value)
         return (
             f"ChangeLogEntry(task_id={self.task_id}, action={self.action}, "
+            f"field={self.field}, new_value={new_value}, "
             f"timestamp={self.timestamp})"
         )
+
