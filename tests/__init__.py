@@ -2,7 +2,7 @@ from models.task import Task
 from models.day import day
 from models.task import Task
 from models.project import project
-from models. change_log import ChangeLogEntry
+from models.change_log import ChangeLogEntry, RESTRICTED_FIELDS
 from core.salary.task_salary import (
     get_approx_cost_pln,
     get_approx_cost_from_pln_to_euro,
