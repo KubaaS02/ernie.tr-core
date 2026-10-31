@@ -8,6 +8,7 @@ from tests import (
     BLANK_VALUES,
     WHITESPACE_IDS,
     WHITESPACE_VALUES,
+    RESTRICTED_FIELDS,
 )
 
 TASK_ID = "7f3a1c2e-0b4d-4a91-9c88-1e2f3a4b5c6d"
@@ -66,7 +67,7 @@ class TestChangeLogEntryTypes:
     def test_invalid_action_raises_value_error(self) -> None:
         """Sprawdzenie, czy akcja spoza enuma jest odrzucana"""
         with pytest.raises(ValueError):
-            ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, "invalid_action") # type: ignore[arg-type]
+            ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, "invalid_action")  # type: ignore[arg-type]
 
     def test_string_action_is_normalized_to_enum(self) -> None:
         """Sprawdzenie, czy action podany jako str. zamienia się na enum"""
@@ -261,3 +262,46 @@ class TestChangeLogEntryBlankValues:
         """Sprawdzenie, czy model nie obcina białych znaków wokół treści"""
         entry = _field_change_entry(field="comment", old_value="", new_value="  Nowy opis ")
         assert entry.new_value == "  Nowy opis "
+
+
+class TestChangeLogEntryRepr:
+    """Testy reprezentacji wpisu bez ujawniania danych wrażliwych (4.0.3)"""
+
+    @pytest.mark.parametrize("field", sorted(RESTRICTED_FIELDS))
+    def test_change_log_entry_repr_hides_restricted_field_value(self, field: str) -> None:
+        """Sprawdzenie, czy wartość pola z RESTRICTED_FIELDS nie trafia do __repr__"""
+        entry = _field_change_entry(field=field, old_value="450.00", new_value="480.00")
+        result = repr(entry)
+        assert "new_value=<Restricted field representation>" in result
+        assert "480.00" not in result
+
+    def test_change_log_entry_repr_hides_comment_text(self) -> None:
+        """Sprawdzenie, czy treść komentarza nie trafia do __repr__"""
+        entry = _field_change_entry(field="comment", old_value="", new_value="Projekt 1")
+        assert "Projekt 1" not in repr(entry)
+
+    def test_change_log_entry_repr_shows_value_of_other_field(self) -> None:
+        """Sprawdzenie, czy wartość pola spoza RESTRICTED_FIELDS jest pokazywana"""
+        entry = _field_change_entry(field="task_date", old_value="2026-10-29",
+                                    new_value="2026-10-30")
+        result = repr(entry)
+        assert "field=task_date" in result
+        assert "new_value='2026-10-30'" in result
+
+    def test_change_log_entry_repr_without_change_fields(self) -> None:
+        """Sprawdzenie reprezentacji wpisu unlock, który nie ma pól zmiany"""
+        entry = ChangeLogEntry(TASK_ID, USER_ID, TIMESTAMP, ChangeLogActions.unlock)
+        assert "field=None, new_value=None" in repr(entry)
+
+    def test_change_log_entry_restricted_fields_cover_sensitive_fields(self) -> None:
+        """Sprawdzenie, czy RESTRICTED_FIELDS zawiera wszystkie pola wrażliwe z 4.0.3"""
+        sensitive_fields = {
+            "comment",
+            "cost_approx_pln",
+            "cost_approx_eur",
+            "cost_actual_pln",
+            "cost_actual_eur",
+            "rate_pln_per_h",
+            "diff",
+        }
+        assert sensitive_fields <= RESTRICTED_FIELDS
