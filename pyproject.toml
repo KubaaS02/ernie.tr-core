@@ -25,6 +25,7 @@ core = ["py.typed"]
 exceptions = ["py.typed"]
 salary = ["py.typed"]
 helper = ["py.typed"]
+db = ["py.typed"]
 
 [tool.mypy]
 python_version = "3.14"
@@ -35,8 +36,12 @@ warn_unused_ignores = true
 [tool.poe.tasks]
 test = "pytest tests"
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [dependency-groups]
 dev = [
+    "pytest-asyncio>=1.4.1.post1",
     "types-requests>=2.33.0.20260712",
 ]
 
